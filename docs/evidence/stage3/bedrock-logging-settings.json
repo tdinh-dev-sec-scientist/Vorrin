@@ -1,0 +1,6 @@
+{
+  "enabled": false,
+  "includes_prompt_content": false,
+  "retention_days": null,
+  "schema_version": 1
+}

@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "includes_prompt_content": false,
+  "provider": "none (Rin uses Amazon Bedrock in the control-plane account)",
+  "retention_days": null,
+  "schema_version": 1
+}
