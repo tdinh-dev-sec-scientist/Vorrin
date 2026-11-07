@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from phase3 import stage_gates
+from phase3.rin_service import GUARDRAIL_INPUT_CONTEXT, guardrail_input_text
 
 ROOT = Path(__file__).resolve().parents[1]
 _SPEC = importlib.util.spec_from_file_location("rin_guardrail", ROOT / "scripts/phase3_rin_guardrail.py")
@@ -72,7 +73,8 @@ class Runtime:
 
     def __init__(self, wrong=()):
         self.expected = {
-            (source, text): guardrail.EXPECTED[category] for _id, category, source, text in guardrail.CASES
+            (source, guardrail_input_text(text) if source == "INPUT" else text): guardrail.EXPECTED[category]
+            for _id, category, source, text in guardrail.CASES
         }
         self.wrong = set(wrong)
         self.calls = []
@@ -81,9 +83,14 @@ class Runtime:
         self.calls.append(kwargs)
         text = kwargs["content"][0]["text"]["text"]
         action = self.expected[(kwargs["source"], text)]
-        if text in self.wrong:
+        if text.removeprefix(GUARDRAIL_INPUT_CONTEXT) in self.wrong:
             action = "ALLOW" if action == "BLOCK" else "BLOCK"
-        return {"action": "GUARDRAIL_INTERVENED" if action == "BLOCK" else "NONE"}
+        if action == "BLOCK":
+            return {
+                "action": "GUARDRAIL_INTERVENED",
+                "assessments": [{"topicPolicy": {"topics": [{"name": "T", "action": "BLOCKED"}]}}],
+            }
+        return {"action": "NONE"}
 
 
 def test_settings_cover_every_required_category_and_fit_bedrock_limits():

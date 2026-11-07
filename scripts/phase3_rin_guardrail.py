@@ -35,6 +35,10 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from phase3.rin_service import guardrail_blocking_policies, guardrail_input_text  # noqa: E402
+
 EVIDENCE = ROOT / "docs/evidence/stage3"
 GUARDRAIL_NAME = "vorrin-p3-rin"
 INSTRUCTION_TOPIC = "System instruction disclosure"
@@ -256,9 +260,14 @@ def observed_action(response: dict[str, Any]) -> str:
 def evaluate(apply, cases=CASES) -> dict[str, Any]:
     """Run every case through ``apply(source, text)`` and grade it."""
     results = []
+    blocked_by = {}
     for case_id, category, source, text in cases:
-        observed = observed_action(apply(source, text))
+        # Rin assesses user questions with fixed context; assess them the same way.
+        response = apply(source, guardrail_input_text(text) if source == "INPUT" else text)
+        observed = observed_action(response)
         expected = EXPECTED[category]
+        if observed == "BLOCK":
+            blocked_by[case_id] = ", ".join(guardrail_blocking_policies(response)) or "unspecified"
         results.append(
             {
                 "case_id": case_id,
@@ -268,7 +277,7 @@ def evaluate(apply, cases=CASES) -> dict[str, Any]:
                 "passed": observed == expected,
             }
         )
-    return {"passed": all(item["passed"] for item in results), "cases": results}
+    return {"passed": all(item["passed"] for item in results), "cases": results, "blocked_by": blocked_by}
 
 
 def write_json(path: Path, value: dict[str, Any]) -> str:
@@ -332,6 +341,8 @@ def run_evaluation(client, runtime, version: str) -> int:
         print(
             f"{mark} {item['case_id']:<{width}}  expected {item['expected_action']:<5} observed {item['observed_action']}"
         )
+        if not item["passed"] and item["case_id"] in result["blocked_by"]:
+            print(f"     blocked by: {result['blocked_by'][item['case_id']]}")
     controls_ok = all(
         controls["prompt_attack_filter"]
         and controls["sensitive_data_filter"]

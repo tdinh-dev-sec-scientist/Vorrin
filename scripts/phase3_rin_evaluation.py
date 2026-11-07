@@ -37,6 +37,7 @@ from phase3.rin_service import (  # noqa: E402
     _BEDROCK_MODEL,
     _apply_bedrock_guardrail,
     _bedrock_converse,
+    guardrail_blocking_policies,
     rin_response,
 )
 
@@ -193,24 +194,7 @@ CASES = [
 BROKEN_MODEL = "us.anthropic.claude-does-not-exist-v1:0"
 
 
-def blocking_policies(result: dict[str, Any]) -> list[str]:
-    """Names of the Guardrail policies that blocked, from ApplyGuardrail assessments."""
-    names = []
-    for assessment in result.get("assessments") or []:
-        for topic in (assessment.get("topicPolicy") or {}).get("topics", []):
-            if topic.get("action") == "BLOCKED":
-                names.append(f"topic {topic.get('name')}")
-        for item in (assessment.get("contentPolicy") or {}).get("filters", []):
-            if item.get("action") == "BLOCKED":
-                names.append(f"content {item.get('type')} ({item.get('confidence')})")
-        sensitive = assessment.get("sensitiveInformationPolicy") or {}
-        for item in sensitive.get("piiEntities", []):
-            if item.get("action") == "BLOCKED":
-                names.append(f"pii {item.get('type')}")
-        for item in sensitive.get("regexes", []):
-            if item.get("action") == "BLOCKED":
-                names.append(f"regex {item.get('name')}")
-    return names
+blocking_policies = guardrail_blocking_policies
 
 
 def suite_sha256() -> str:

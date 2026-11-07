@@ -10,7 +10,7 @@ from pathlib import Path
 
 from phase3 import stage_evidence
 from phase3.redaction import redact_snapshot
-from phase3.rin_service import _bedrock_converse, rin_response
+from phase3.rin_service import _bedrock_converse, guardrail_input_text, rin_response
 
 ROOT = Path(__file__).resolve().parents[1]
 _SPEC = importlib.util.spec_from_file_location("rin_evaluation", ROOT / "scripts/phase3_rin_evaluation.py")
@@ -84,7 +84,7 @@ def _ask(runtime, guardrail):
 
 
 def _guardrail(*, source, text):
-    blocked = source == "INPUT" and text in BLOCKED_QUESTIONS
+    blocked = source == "INPUT" and text in {guardrail_input_text(question) for question in BLOCKED_QUESTIONS}
     return {"action": "GUARDRAIL_INTERVENED" if blocked else "NONE"}
 
 

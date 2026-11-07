@@ -46,6 +46,38 @@ _GUARDRAIL_ARN = re.compile(
 _GUARDRAIL_VERSION = re.compile(r"^[1-9][0-9]{0,7}$")
 
 
+# Short questions are ambiguous to the Guardrail's topic classifier ("Why is
+# this risky?" read as investment risk), so the INPUT check sees the question
+# with this fixed context. The Guardrail suite assesses inputs the same way.
+GUARDRAIL_INPUT_CONTEXT = "Question about one cloud security finding: "
+
+
+def guardrail_input_text(question: str) -> str:
+    """The exact text Rin's INPUT Guardrail check assesses for a user question."""
+    return GUARDRAIL_INPUT_CONTEXT + question
+
+
+def guardrail_blocking_policies(result: Any) -> list[str]:
+    """Names of the Guardrail policies that blocked, from ApplyGuardrail assessments."""
+    names: list[str] = []
+    assessments = result.get("assessments") if isinstance(result, dict) else None
+    for assessment in assessments or []:
+        for topic in (assessment.get("topicPolicy") or {}).get("topics", []):
+            if topic.get("action") == "BLOCKED":
+                names.append(f"topic {topic.get('name')}")
+        for item in (assessment.get("contentPolicy") or {}).get("filters", []):
+            if item.get("action") == "BLOCKED":
+                names.append(f"content {item.get('type')} ({item.get('confidence')})")
+        sensitive = assessment.get("sensitiveInformationPolicy") or {}
+        for item in sensitive.get("piiEntities", []):
+            if item.get("action") == "BLOCKED":
+                names.append(f"pii {item.get('type')}")
+        for item in sensitive.get("regexes", []):
+            if item.get("action") == "BLOCKED":
+                names.append(f"regex {item.get('name')}")
+    return names
+
+
 class RinRequestError(ValueError):
     """A Rin request or response failed safe handling."""
 
@@ -217,7 +249,7 @@ def rin_response(
         # redacted and validated, and the OUTPUT check still covers leaks;
         # assessing the question alone keeps the topic and prompt-attack
         # classifiers from being diluted by finding text.
-        _require_guardrail_clear(guardrail(source="INPUT", text=question))
+        _require_guardrail_clear(guardrail(source="INPUT", text=guardrail_input_text(question)))
     except AIAnalystError as exc:
         state = "REJECTED" if exc.code == "GUARDRAIL_BLOCKED" else "UNAVAILABLE"
         return _response(
