@@ -213,7 +213,7 @@ def test_evaluation_writes_evidence_that_the_stage_gate_accepts(tmp_path, monkey
     }
     assert stage_gates._valid_guardrail_configuration_capture(configuration, review)
     assert stage_gates._valid_guardrail_evaluation_capture(evaluation, review)
-    assert "All 23 cases passed." in capsys.readouterr().out
+    assert "All 26 cases passed." in capsys.readouterr().out
 
 
 def test_failed_cases_write_nothing(tmp_path, monkeypatch, capsys):
@@ -224,7 +224,7 @@ def test_failed_cases_write_nothing(tmp_path, monkeypatch, capsys):
     assert guardrail.run_evaluation(control, runtime, "2") == 1
     assert not (tmp_path / "stage3").exists()
     out = capsys.readouterr().out
-    assert "FAIL input-off-scope-1" in out and "1 of 23 cases failed" in out
+    assert "FAIL input-off-scope-1" in out and "1 of 26 cases failed" in out
 
 
 def test_incomplete_controls_write_nothing(tmp_path, monkeypatch):
