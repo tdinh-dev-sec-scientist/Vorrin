@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import copy
 import json
 import os
 import re
@@ -12,7 +13,13 @@ from typing import Any
 
 import boto3
 
-from auditor.ai_analyst import AIAnalystError, _build_request, _openai_responses, _validate_model_output
+from auditor.ai_analyst import (
+    OUTPUT_SCHEMA,
+    AIAnalystError,
+    _build_request,
+    _openai_responses,
+    _validate_model_output,
+)
 
 from .access import AccessConfigurationError, AccessDenied, authenticate
 from .public_api import STALE_AFTER_SECONDS, AwsPublicReadStore
@@ -25,6 +32,12 @@ MAX_INPUT_TOKENS = 8192
 _INSTRUCTION_ECHO_MIN_TOKENS = 12
 _ID = re.compile(r"^[a-f0-9]{24}$")
 _MODEL = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+# Bedrock models are called only through a US cross-Region inference profile,
+# so prompts stay in US Regions, e.g. us.anthropic.claude-haiku-4-5-20251001-v1:0.
+_BEDROCK_MODEL = re.compile(r"^us\.(?:anthropic|amazon)\.[a-z0-9-]+(?:\.[a-z0-9-]+)*(?::[0-9]+)?$")
+PROVIDERS = frozenset({"openai", "bedrock"})
+_BEDROCK_TOOL = "security_analysis"
+MAX_BEDROCK_TOOL_INPUT_BYTES = 64 * 1024
 _SESSION_TOKEN = re.compile(r"^[A-Za-z0-9_-]{22,128}$")
 _GUARDRAIL_ARN = re.compile(
     r"^arn:(?:aws|aws-us-gov|aws-cn):bedrock:[a-z0-9-]+:[0-9]{12}:guardrail/[a-z0-9]+$"
@@ -53,8 +66,12 @@ def rin_response(
     guardrail: Any = None,
     now: datetime | None = None,
     quota_identity: str | None = None,
+    requires_api_key: bool = True,
 ) -> dict[str, Any]:
     """Answer one question about one redacted finding.
+
+    requires_api_key is False only for the Bedrock provider, which signs
+    requests with the Lambda role instead of an external provider secret.
 
     quota_identity, when set, is a verified per-user key from the API
     authorizer. It replaces the client-supplied session token for quota
@@ -77,7 +94,7 @@ def rin_response(
         )
     if (
         not isinstance(model, str)
-        or not _MODEL.fullmatch(model)
+        or not (_MODEL.fullmatch(model) or _BEDROCK_MODEL.fullmatch(model))
         or not isinstance(max_output_tokens, int)
         or not isinstance(max_input_tokens, int)
         or isinstance(max_output_tokens, bool)
@@ -210,12 +227,17 @@ def rin_response(
                 "message": "Rin is using the local fixture fallback.",
             },
         )
-    try:
-        selected_key = api_key() if callable(api_key) else api_key
-    except Exception:
+    if requires_api_key:
+        try:
+            selected_key = api_key() if callable(api_key) else api_key
+        except Exception:
+            selected_key = None
+        if not isinstance(selected_key, str) or not selected_key.strip():
+            return _response(200, {"status": "UNAVAILABLE", "reason_code": "PROVIDER_NOT_CONFIGURED"})
+    else:
         selected_key = None
-    if not isinstance(selected_key, str) or not selected_key.strip():
-        return _response(200, {"status": "UNAVAILABLE", "reason_code": "PROVIDER_NOT_CONFIGURED"})
+        if not callable(provider):
+            return _response(200, {"status": "UNAVAILABLE", "reason_code": "PROVIDER_NOT_CONFIGURED"})
     run_provider = provider or _openai_responses
     try:
         response = run_provider(request, api_key=selected_key)
@@ -300,6 +322,80 @@ def _apply_bedrock_guardrail(
         source=source,
         content=[{"text": {"text": text}}],
     )
+
+
+def _rin_output_schema() -> dict[str, Any]:
+    """The analyst schema with proposal fixed to null: Rin never proposes edits."""
+    schema = copy.deepcopy(OUTPUT_SCHEMA)
+    schema["properties"]["analyses"]["items"]["properties"]["proposal"] = {"type": "null"}
+    return schema
+
+
+def _bedrock_converse(client: Any, request: dict[str, Any]) -> dict[str, Any]:
+    """Call one Bedrock model through Converse and return its structured output.
+
+    Structured output uses a single forced tool whose input schema is the Rin
+    output schema. The tool is never executed: its input is the answer, and
+    it goes through the same schema, citation, leak, and Guardrail checks as
+    any provider output.
+    """
+    model = request.get("model")
+    if not isinstance(model, str) or not _BEDROCK_MODEL.fullmatch(model):
+        raise AIAnalystError(
+            "Rin Bedrock model is not an approved US inference profile", code="ProviderUnavailable"
+        )
+    try:
+        response = client.converse(
+            modelId=model,
+            system=[{"text": request["instructions"]}],
+            messages=[{"role": "user", "content": [{"text": request["input"]}]}],
+            inferenceConfig={"maxTokens": int(request["max_output_tokens"]), "temperature": 0},
+            toolConfig={
+                "tools": [
+                    {
+                        "toolSpec": {
+                            "name": _BEDROCK_TOOL,
+                            "description": "Return the security analysis for the selected finding.",
+                            "inputSchema": {"json": _rin_output_schema()},
+                        }
+                    }
+                ],
+                "toolChoice": {"tool": {"name": _BEDROCK_TOOL}},
+            },
+        )
+    except Exception:
+        raise AIAnalystError("AI provider request failed", code="ProviderUnavailable") from None
+    if not isinstance(response, dict):
+        raise AIAnalystError("AI provider returned an invalid response", code="ProviderInvalidResponse")
+    stop_reason = response.get("stopReason")
+    if stop_reason in {"guardrail_intervened", "content_filtered"}:
+        raise AIAnalystError("AI provider refused the request", code="ProviderRefusal")
+    if stop_reason != "tool_use":
+        raise AIAnalystError("AI provider response did not complete", code="ProviderIncomplete")
+    output_block = response.get("output")
+    message = output_block.get("message") if isinstance(output_block, dict) else None
+    contents = message.get("content") if isinstance(message, dict) else None
+    if not isinstance(contents, list):
+        raise AIAnalystError("AI provider response has no output", code="ProviderInvalidResponse")
+    uses = [
+        item["toolUse"]
+        for item in contents
+        if isinstance(item, dict) and isinstance(item.get("toolUse"), dict)
+    ]
+    if len(uses) != 1 or uses[0].get("name") != _BEDROCK_TOOL or not isinstance(uses[0].get("input"), dict):
+        raise AIAnalystError(
+            "AI provider returned ambiguous structured output", code="ProviderInvalidResponse"
+        )
+    output = uses[0]["input"]
+    try:
+        size = len(json.dumps(output, allow_nan=False).encode("utf-8"))
+    except (TypeError, ValueError):
+        raise AIAnalystError(
+            "AI provider output is not valid structured JSON", code="InvalidOutputSchema"
+        ) from None
+    if size > MAX_BEDROCK_TOOL_INPUT_BYTES:
+        raise AIAnalystError("AI provider response exceeded the size limit", code="ProviderResponseTooLarge")
+    return output
 
 
 def _parse_request(event: Any) -> tuple[str, str, str] | None:
@@ -475,6 +571,9 @@ def _configured_rin_response(event: Any, *, access_quota_identity: str | None) -
     guardrail_version = os.environ.get("PHASE3_RIN_GUARDRAIL_VERSION", "").strip()
     token_cap = os.environ.get("PHASE3_RIN_MAX_OUTPUT_TOKENS", "")
     input_cap = os.environ.get("PHASE3_RIN_MAX_INPUT_TOKENS", "")
+    provider_name = os.environ.get("PHASE3_RIN_PROVIDER", "openai").strip() or "openai"
+    if provider_name not in PROVIDERS:
+        return _response(200, {"status": "UNAVAILABLE", "reason_code": "RIN_NOT_CONFIGURED"})
     if not all((region, bucket, index_name, feature_name, quota_function)):
         return _response(200, {"status": "UNAVAILABLE", "reason_code": "RIN_NOT_CONFIGURED"})
     try:
@@ -492,6 +591,16 @@ def _configured_rin_response(event: Any, *, access_quota_identity: str | None) -
         enabled = isinstance(feature, dict) and feature.get("rin_enabled") is True
         quota_client = aws.client("lambda")
         secrets_client = aws.client("secretsmanager")
+        model_client = None
+        if enabled and provider_name == "bedrock" and _BEDROCK_MODEL.fullmatch(model):
+            from botocore.config import Config
+
+            model_client = aws.client(
+                "bedrock-runtime",
+                config=Config(
+                    connect_timeout=5, read_timeout=30, retries={"max_attempts": 2, "mode": "standard"}
+                ),
+            )
         guardrail_client = (
             aws.client("bedrock-runtime")
             if enabled
@@ -539,6 +648,13 @@ def _configured_rin_response(event: Any, *, access_quota_identity: str | None) -
             text=text,
         )
 
+    bedrock_provider = None
+    if model_client is not None:
+
+        def bedrock_provider(request: dict[str, Any], *, api_key: Any = None) -> dict[str, Any]:
+            del api_key
+            return _bedrock_converse(model_client, request)
+
     try:
         parsed_cap = int(token_cap) if token_cap.isascii() and token_cap.isdigit() else None
         parsed_input_cap = int(input_cap) if input_cap.isascii() and input_cap.isdigit() else 4096
@@ -559,4 +675,6 @@ def _configured_rin_response(event: Any, *, access_quota_identity: str | None) -
         guardrail_version=guardrail_version,
         guardrail=assess_guardrail if guardrail_client is not None else None,
         quota_identity=access_quota_identity,
+        provider=bedrock_provider if provider_name == "bedrock" else None,
+        requires_api_key=provider_name != "bedrock",
     )

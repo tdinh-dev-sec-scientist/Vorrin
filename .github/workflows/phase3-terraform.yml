@@ -65,6 +65,7 @@ jobs:
       TF_VAR_provider_monthly_budget_usd: ${{ vars.PHASE3_PROVIDER_MONTHLY_BUDGET_USD || 'null' }}
       TF_VAR_budget_alert_email: ${{ vars.PHASE3_BUDGET_ALERT_EMAIL || '' }}
       TF_VAR_rin_enabled: ${{ vars.PHASE3_RIN_ENABLED || 'false' }}
+      TF_VAR_rin_provider: ${{ vars.PHASE3_RIN_PROVIDER || 'openai' }}
       TF_VAR_rin_model: ${{ vars.PHASE3_RIN_MODEL || '' }}
       TF_VAR_rin_guardrail_arn: ${{ vars.PHASE3_RIN_GUARDRAIL_ARN || '' }}
       TF_VAR_rin_guardrail_version: ${{ vars.PHASE3_RIN_GUARDRAIL_VERSION || '' }}

@@ -534,6 +534,16 @@ resource "aws_iam_role_policy" "rin_guardrail" {
   }
 }
 
+resource "aws_iam_role_policy" "rin_bedrock_model" {
+  count = var.enable_stage3 && var.rin_enabled && var.rin_provider == "bedrock" ? 1 : 0
+  name  = "InvokeOnlyTheApprovedRinModel"
+  role  = aws_iam_role.rin[0].id
+  policy = templatefile("${path.module}/../policies/rin-bedrock-model.json", {
+    inference_profile_arn = "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${var.rin_model}"
+    foundation_model_id   = trimprefix(var.rin_model, "us.")
+  })
+}
+
 resource "aws_iam_role_policy" "public_api_feature_read" {
   count = var.enable_stage3 ? 1 : 0
   name  = "ReadOnlyPhase3PlatformFlags"
@@ -579,7 +589,7 @@ resource "aws_lambda_function" "rin" {
   timeout          = 45
   memory_size      = 512
   publish          = true
-  depends_on       = [aws_iam_role_policy.rin_runtime, aws_iam_role_policy.rin_guardrail, aws_iam_role_policy.rin_logs]
+  depends_on       = [aws_iam_role_policy.rin_runtime, aws_iam_role_policy.rin_guardrail, aws_iam_role_policy.rin_bedrock_model, aws_iam_role_policy.rin_logs]
   environment {
     variables = merge(local.access_environment, {
       PHASE3_PUBLIC_RESULTS_BUCKET   = aws_s3_bucket.public_results[0].bucket
@@ -587,6 +597,7 @@ resource "aws_lambda_function" "rin" {
       PHASE3_RIN_FEATURE_TABLE       = aws_dynamodb_table.rin_feature[0].name
       PHASE3_RIN_QUOTA_FUNCTION_ARN  = aws_lambda_function.rin_quota[0].arn
       PHASE3_RIN_PROVIDER_SECRET_ARN = aws_secretsmanager_secret.rin_provider_key[0].arn
+      PHASE3_RIN_PROVIDER            = var.rin_provider
       PHASE3_RIN_MODEL               = var.rin_model
       PHASE3_RIN_GUARDRAIL_ARN       = var.rin_guardrail_arn
       PHASE3_RIN_GUARDRAIL_VERSION   = var.rin_guardrail_version

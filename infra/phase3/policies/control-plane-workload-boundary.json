@@ -113,6 +113,15 @@
       "Effect": "Allow",
       "Action": "bedrock:ApplyGuardrail",
       "Resource": "arn:aws:bedrock:${region}:${account_id}:guardrail/*"
+    },
+    {
+      "Sid": "InvokeOnlyUsInferenceProfileModels",
+      "Effect": "Allow",
+      "Action": "bedrock:InvokeModel",
+      "Resource": [
+        "arn:aws:bedrock:${region}:${account_id}:inference-profile/us.*",
+        "arn:aws:bedrock:us-*::foundation-model/*"
+      ]
     }
   ]
 }

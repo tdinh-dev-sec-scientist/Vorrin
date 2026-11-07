@@ -172,3 +172,57 @@ def test_provider_key_is_absent_without_a_configured_secret(wired, monkeypatch):
     rin_service.lambda_handler({"body": "{}"}, None)
 
     assert wired["captured"]["api_key"]() is None
+
+
+BEDROCK_MODEL = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+
+def test_handler_wires_the_bedrock_provider_without_the_secret(wired, monkeypatch):
+    wired["features"].put_item(
+        Item={"pk": "PLATFORM", "sk": "CONFIG", "rin_enabled": True, "static_mode": False}
+    )
+    monkeypatch.setenv("PHASE3_RIN_GUARDRAIL_ARN", GUARDRAIL)
+    monkeypatch.setenv("PHASE3_RIN_GUARDRAIL_VERSION", "1")
+    monkeypatch.setenv("PHASE3_RIN_PROVIDER", "bedrock")
+    monkeypatch.setenv("PHASE3_RIN_MODEL", BEDROCK_MODEL)
+
+    rin_service.lambda_handler({"body": "{}"}, None)
+    captured = wired["captured"]
+
+    assert captured["requires_api_key"] is False
+    assert callable(captured["provider"])
+    assert captured["model"] == BEDROCK_MODEL
+
+
+def test_handler_keeps_openai_as_the_default_provider(wired, monkeypatch):
+    wired["features"].put_item(
+        Item={"pk": "PLATFORM", "sk": "CONFIG", "rin_enabled": True, "static_mode": False}
+    )
+    monkeypatch.delenv("PHASE3_RIN_PROVIDER", raising=False)
+
+    rin_service.lambda_handler({"body": "{}"}, None)
+    captured = wired["captured"]
+
+    assert captured["requires_api_key"] is True
+    assert captured["provider"] is None
+
+
+@pytest.mark.parametrize("model", ["provider-model", "global.anthropic.claude-haiku-4-5"])
+def test_handler_builds_no_bedrock_provider_for_a_non_profile_model(wired, monkeypatch, model):
+    wired["features"].put_item(
+        Item={"pk": "PLATFORM", "sk": "CONFIG", "rin_enabled": True, "static_mode": False}
+    )
+    monkeypatch.setenv("PHASE3_RIN_PROVIDER", "bedrock")
+    monkeypatch.setenv("PHASE3_RIN_MODEL", model)
+
+    rin_service.lambda_handler({"body": "{}"}, None)
+
+    assert wired["captured"]["provider"] is None
+    assert wired["captured"]["requires_api_key"] is False
+
+
+def test_handler_rejects_an_unknown_provider(wired, monkeypatch):
+    monkeypatch.setenv("PHASE3_RIN_PROVIDER", "kimi")
+    response = rin_service.lambda_handler({"body": "{}"}, None)
+    assert json.loads(response["body"])["reason_code"] == "RIN_NOT_CONFIGURED"
+    assert wired["captured"] == {}
