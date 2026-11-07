@@ -149,3 +149,29 @@ resource "aws_s3_object" "auth_config" {
     scopes      = ["openid", "email"]
   }) : jsonencode({ mode = "public" })
 }
+
+# Brand the Hosted UI sign-in page to match the console. Cognito accepts only
+# its documented *-customizable classes and properties, so this sheet keeps
+# the property set of AWS's default Hosted UI CSS and changes only the values.
+resource "aws_cognito_user_pool_ui_customization" "console" {
+  count        = local.auth_enabled ? 1 : 0
+  user_pool_id = aws_cognito_user_pool_domain.console[0].user_pool_id
+  image_file   = filebase64("${path.module}/assets/login-logo.png")
+  css          = <<-CSS
+    .logo-customizable { max-width: 70%; max-height: 40%; }
+    .banner-customizable { padding: 25px 0px 25px 0px; background-color: #f2f0f3; }
+    .label-customizable { font-weight: 500; }
+    .textDescription-customizable { padding-top: 10px; padding-bottom: 10px; display: block; font-size: 16px; }
+    .idpDescription-customizable { padding-top: 10px; padding-bottom: 10px; display: block; font-size: 16px; }
+    .legalText-customizable { color: #6d6872; font-size: 11px; }
+    .submitButton-customizable { font-size: 14px; font-weight: bold; margin: 20px 0px 10px 0px; height: 40px; width: 100%; color: #ffffff; background-color: #874795; }
+    .submitButton-customizable:hover { color: #ffffff; background-color: #713a80; }
+    .errorMessage-customizable { padding: 5px; font-size: 14px; width: 100%; background: #fbf3f4; border: 2px solid #b4233a; color: #b4233a; }
+    .inputField-customizable { width: 100%; height: 34px; color: #302c33; background-color: #ffffff; border: 1px solid #d7d3da; }
+    .inputField-customizable:focus { border-color: #874795; outline: 0; }
+    .redirect-customizable { text-align: center; }
+    .passwordCheck-notValid-customizable { color: #b4233a; }
+    .passwordCheck-valid-customizable { color: #1f7a45; }
+    .background-customizable { background-color: #ffffff; }
+  CSS
+}
