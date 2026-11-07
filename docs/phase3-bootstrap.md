@@ -354,7 +354,10 @@ The A2-false model path uses the selected external model provider and an
 owner-managed Bedrock Guardrail. Terraform does not create or edit the
 Guardrail. Before live Rin can be enabled:
 
-1. Configure and publish a numeric Guardrail version. It must block prompt
+1. Configure and publish a numeric Guardrail version with
+   `scripts/phase3_rin_guardrail.py publish`, then run its adversarial suite
+   with `scripts/phase3_rin_guardrail.py evaluate`, which writes the two
+   Guardrail source exports only when every case passes. It must block prompt
    attacks, deny off-scope topics, and detect or block sensitive data for both
    input and output. Review the [Guardrails content and topic policies](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html)
    and [prompt attack filter requirements](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-prompt-attack.html).
@@ -372,9 +375,9 @@ Guardrail. Before live Rin can be enabled:
    model only when called through that profile; the workload boundary caps
    this to `us.*` profiles. No provider secret is read on this path, and
    prompts stay in AWS US Regions. Check a model before deploying with
-   `scripts/rin_bedrock_smoke.py`. Rin sends the bounded redacted question and selected
-   finding to `ApplyGuardrail` with `source=INPUT` before calling the external
-   model, then checks the validated answer with `source=OUTPUT` before
+   `scripts/rin_bedrock_smoke.py`. Rin sends the user's question, the only untrusted
+   input, to `ApplyGuardrail` with `source=INPUT` before calling the model
+   (the selected finding is already redacted and validated), then checks the validated answer with `source=OUTPUT` before
    returning it. A block, invalid response, or service error selects the
    fixture fallback. See AWS's [independent ApplyGuardrail API](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-use-independent-api.html).
 4. Verify Guardrail and model invocation logging settings. This service does
@@ -387,7 +390,8 @@ Guardrail. Before live Rin can be enabled:
    `docs/evidence/stage3/guardrail-policy-review.json` and
    `docs/evidence/stage3/bedrock-logging-review.json`; the manifest keeps both
    criteria false until those artifacts are captured and reviewed. The policy
-   record must identify the published ARN/version, the checked-in
+   record must identify the SHA-256 of the published Guardrail ARN (the ARN
+   itself, which contains the account ID, is never checked in) and its version, the checked-in
    `stage3/guardrail-configuration.json` export and its matching SHA-256,
    input/output prompt-attack and sensitive-data filters, off-scope topics, and
    a passing adversarial-suite digest with its case count, matching the

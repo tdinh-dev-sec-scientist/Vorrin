@@ -281,10 +281,7 @@ locals {
     floor(local.phase3_stage3_guardrail_review.schema_version) == local.phase3_stage3_guardrail_review.schema_version &&
     local.phase3_stage3_guardrail_review.reviewed_by == local.phase3_stage3.reviewed_by &&
     local.phase3_stage3_guardrail_review.reviewed_at == local.phase3_stage3.reviewed_at &&
-    can(regex(
-      "^arn:(aws|aws-us-gov|aws-cn):bedrock:[a-z0-9-]+:[0-9]{12}:guardrail/[a-z0-9]+$",
-      local.phase3_stage3_guardrail_review.guardrail_arn
-    )) &&
+    can(regex("^[a-f0-9]{64}$", local.phase3_stage3_guardrail_review.guardrail_arn_sha256)) &&
     can(regex("^[1-9][0-9]{0,7}$", local.phase3_stage3_guardrail_review.published_version)) &&
     local.phase3_stage3_guardrail_review.configuration_evidence_path == "stage3/guardrail-configuration.json" &&
     can(regex("^[a-f0-9]{64}$", local.phase3_stage3_guardrail_review.configuration_sha256)) &&
@@ -294,7 +291,7 @@ locals {
     length(keys(local.phase3_stage3_guardrail_configuration)) == 5 &&
     local.phase3_stage3_guardrail_configuration.schema_version == 1 &&
     floor(local.phase3_stage3_guardrail_configuration.schema_version) == local.phase3_stage3_guardrail_configuration.schema_version &&
-    local.phase3_stage3_guardrail_configuration.guardrail_arn == local.phase3_stage3_guardrail_review.guardrail_arn &&
+    local.phase3_stage3_guardrail_configuration.guardrail_arn_sha256 == local.phase3_stage3_guardrail_review.guardrail_arn_sha256 &&
     local.phase3_stage3_guardrail_configuration.published_version == local.phase3_stage3_guardrail_review.published_version &&
     local.phase3_stage3_guardrail_configuration.input_controls == local.phase3_stage3_guardrail_review.input_controls &&
     local.phase3_stage3_guardrail_configuration.output_controls == local.phase3_stage3_guardrail_review.output_controls &&
@@ -323,7 +320,7 @@ locals {
     length(keys(local.phase3_stage3_guardrail_evaluation)) == 6 &&
     local.phase3_stage3_guardrail_evaluation.schema_version == 1 &&
     floor(local.phase3_stage3_guardrail_evaluation.schema_version) == local.phase3_stage3_guardrail_evaluation.schema_version &&
-    local.phase3_stage3_guardrail_evaluation.guardrail_arn == local.phase3_stage3_guardrail_review.guardrail_arn &&
+    local.phase3_stage3_guardrail_evaluation.guardrail_arn_sha256 == local.phase3_stage3_guardrail_review.guardrail_arn_sha256 &&
     local.phase3_stage3_guardrail_evaluation.published_version == local.phase3_stage3_guardrail_review.published_version &&
     local.phase3_stage3_guardrail_evaluation.passed == true &&
     local.phase3_stage3_guardrail_evaluation.passed == local.phase3_stage3_guardrail_review.evaluation.passed &&
@@ -353,7 +350,7 @@ locals {
     length(keys(local.phase3_stage3_logging_review)) == 8 &&
     local.phase3_stage3_logging_review.schema_version == 1 &&
     floor(local.phase3_stage3_logging_review.schema_version) == local.phase3_stage3_logging_review.schema_version &&
-    local.phase3_stage3_logging_review.guardrail_arn == local.phase3_stage3_guardrail_review.guardrail_arn &&
+    local.phase3_stage3_logging_review.guardrail_arn_sha256 == local.phase3_stage3_guardrail_review.guardrail_arn_sha256 &&
     local.phase3_stage3_logging_review.published_version == local.phase3_stage3_guardrail_review.published_version &&
     local.phase3_stage3_logging_review.reviewed_by == local.phase3_stage3.reviewed_by &&
     local.phase3_stage3_logging_review.reviewed_at == local.phase3_stage3.reviewed_at &&
@@ -402,7 +399,7 @@ locals {
     ]) &&
     trimspace(local.phase3_stage3_logging_review.external_provider_logging.provider) != "" &&
     (!var.rin_enabled || (
-      local.phase3_stage3_guardrail_review.guardrail_arn == var.rin_guardrail_arn &&
+      local.phase3_stage3_guardrail_review.guardrail_arn_sha256 == sha256(var.rin_guardrail_arn) &&
       local.phase3_stage3_guardrail_review.published_version == var.rin_guardrail_version
     )),
     false
@@ -538,7 +535,7 @@ resource "terraform_data" "phase3_stage_acceptance_gate" {
     }
     precondition {
       condition = !var.rin_enabled || try(
-        local.phase3_stage3_guardrail_review.guardrail_arn == var.rin_guardrail_arn &&
+        local.phase3_stage3_guardrail_review.guardrail_arn_sha256 == sha256(var.rin_guardrail_arn) &&
         local.phase3_stage3_guardrail_review.published_version == var.rin_guardrail_version,
         false
       )

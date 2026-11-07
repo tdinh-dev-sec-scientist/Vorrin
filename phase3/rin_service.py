@@ -211,7 +211,11 @@ def rin_response(
                 },
             )
     try:
-        _require_guardrail_clear(guardrail(source="INPUT", text=request["input"]))
+        # Only the user's question is untrusted. The finding is already
+        # redacted and validated, and the OUTPUT check still covers leaks;
+        # assessing the question alone keeps the topic and prompt-attack
+        # classifiers from being diluted by finding text.
+        _require_guardrail_clear(guardrail(source="INPUT", text=question))
     except AIAnalystError as exc:
         state = "REJECTED" if exc.code == "GUARDRAIL_BLOCKED" else "UNAVAILABLE"
         return _response(
