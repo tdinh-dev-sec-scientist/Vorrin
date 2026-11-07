@@ -1,6 +1,6 @@
 [
   {
-    "DefaultVersionId": "v1",
+    "DefaultVersionId": "v2",
     "PolicyArn": "arn:aws:iam::<TARGET_ACCOUNT>:policy/<RESOURCE>",
     "PolicyDocument": {
       "Statement": [
@@ -130,6 +130,7 @@
             "cognito-idp:UpdateUserPoolDomain",
             "cognito-idp:DeleteUserPoolDomain",
             "cognito-idp:SetUserPoolMfaConfig",
+            "cognito-idp:SetUICustomization",
             "cognito-idp:TagResource",
             "cognito-idp:UntagResource"
           ],
