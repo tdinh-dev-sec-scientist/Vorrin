@@ -131,3 +131,30 @@ def test_the_written_document_satisfies_the_stage_evidence_schema(tmp_path, monk
     stage_evidence._validate_stage3_rin(
         tmp_path, {"reviewed_by": "Reviewer", "reviewed_at": "2026-11-07T00:00:00+00:00"}
     )
+
+
+def test_blocking_policies_names_every_blocking_policy():
+    result = {
+        "assessments": [
+            {
+                "topicPolicy": {"topics": [{"name": "Unrelated requests", "action": "BLOCKED"}]},
+                "contentPolicy": {
+                    "filters": [
+                        {"type": "PROMPT_ATTACK", "confidence": "HIGH", "action": "BLOCKED"},
+                        {"type": "HATE", "confidence": "NONE", "action": "NONE"},
+                    ]
+                },
+                "sensitiveInformationPolicy": {
+                    "piiEntities": [{"type": "EMAIL", "action": "BLOCKED"}],
+                    "regexes": [{"name": "AWS account ID", "action": "BLOCKED"}],
+                },
+            }
+        ]
+    }
+    assert evaluation.blocking_policies(result) == [
+        "topic Unrelated requests",
+        "content PROMPT_ATTACK (HIGH)",
+        "pii EMAIL",
+        "regex AWS account ID",
+    ]
+    assert evaluation.blocking_policies({}) == []

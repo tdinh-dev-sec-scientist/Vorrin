@@ -193,6 +193,26 @@ CASES = [
 BROKEN_MODEL = "us.anthropic.claude-does-not-exist-v1:0"
 
 
+def blocking_policies(result: dict[str, Any]) -> list[str]:
+    """Names of the Guardrail policies that blocked, from ApplyGuardrail assessments."""
+    names = []
+    for assessment in result.get("assessments") or []:
+        for topic in (assessment.get("topicPolicy") or {}).get("topics", []):
+            if topic.get("action") == "BLOCKED":
+                names.append(f"topic {topic.get('name')}")
+        for item in (assessment.get("contentPolicy") or {}).get("filters", []):
+            if item.get("action") == "BLOCKED":
+                names.append(f"content {item.get('type')} ({item.get('confidence')})")
+        sensitive = assessment.get("sensitiveInformationPolicy") or {}
+        for item in sensitive.get("piiEntities", []):
+            if item.get("action") == "BLOCKED":
+                names.append(f"pii {item.get('type')}")
+        for item in sensitive.get("regexes", []):
+            if item.get("action") == "BLOCKED":
+                names.append(f"regex {item.get('name')}")
+    return names
+
+
 def suite_sha256() -> str:
     return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
@@ -241,16 +261,22 @@ def main(argv: list[str] | None = None) -> int:
     snapshot = redact_snapshot(_report(datetime.now(UTC)), secrets.token_bytes(32))
     finding_id = snapshot["findings"][0]["id"]
 
+    interventions: list[str] = []
+
     def guardrail(*, source: str, text: str) -> dict[str, Any]:
-        return _apply_bedrock_guardrail(
+        result = _apply_bedrock_guardrail(
             runtime,
             guardrail_identifier=guardrail_arn,
             guardrail_version=args.guardrail_version,
             source=source,
             text=text,
         )
+        if result.get("action") == "GUARDRAIL_INTERVENED":
+            interventions.append(f"{source}: {', '.join(blocking_policies(result)) or 'unspecified'}")
+        return result
 
     def ask(question: str, broken: bool) -> dict[str, Any]:
+        interventions.clear()
         event = {
             "httpMethod": "POST",
             "path": "/api/rin",
@@ -274,7 +300,15 @@ def main(argv: list[str] | None = None) -> int:
             requires_api_key=False,
         )
 
-    result = run(ask)
+    blocked_by: dict[str, str] = {}
+
+    def ask_and_record(question: str, broken: bool) -> dict[str, Any]:
+        response = ask(question, broken)
+        if interventions:
+            blocked_by[question] = "; ".join(interventions)
+        return response
+
+    result = run(ask_and_record)
     width = max(len(case[0]) for case in CASES)
     for item in result["cases"]:
         body = item["_body"]
@@ -282,6 +316,9 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{'ok  ' if item['passed'] else 'FAIL'} {item['case_id']:<{width}}  {item['category']:<24} {detail}"
         )
+        question = next(case[2] for case in CASES if case[0] == item["case_id"])
+        if question in blocked_by:
+            print(f"       guardrail: {blocked_by[question]}")
         if body.get("status") == "COMPLETE":
             print(f"       answer: {body['answer'][:220]}")
             print(f"       cited:  {', '.join(c['id'] for c in body.get('citations', []))}")
