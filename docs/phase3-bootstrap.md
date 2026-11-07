@@ -362,9 +362,17 @@ Guardrail. Before live Rin can be enabled:
    `PHASE3_RIN_GUARDRAIL_VERSION` in the protected control-plane environment.
    The ARN must belong to the same AWS account and region as the Rin Lambda;
    `DRAFT` is rejected.
-3. Review the captured Rin role policy. When Rin is enabled, it receives only
-   `bedrock:ApplyGuardrail` on that exact Guardrail ARN. It does not receive
-   `bedrock:InvokeModel`. Rin sends the bounded redacted question and selected
+3. Review the captured Rin role policy. When Rin is enabled, it receives
+   `bedrock:ApplyGuardrail` on that exact Guardrail ARN. With the default
+   `PHASE3_RIN_PROVIDER=openai` it does not receive `bedrock:InvokeModel`.
+   With `PHASE3_RIN_PROVIDER=bedrock`, `PHASE3_RIN_MODEL` must be a US
+   cross-Region inference profile (`us.anthropic.*` or `us.amazon.*`, for
+   example `us.anthropic.claude-haiku-4-5-20251001-v1:0`), and the role also
+   receives `bedrock:InvokeModel` on that one profile and on its foundation
+   model only when called through that profile; the workload boundary caps
+   this to `us.*` profiles. No provider secret is read on this path, and
+   prompts stay in AWS US Regions. Check a model before deploying with
+   `scripts/rin_bedrock_smoke.py`. Rin sends the bounded redacted question and selected
    finding to `ApplyGuardrail` with `source=INPUT` before calling the external
    model, then checks the validated answer with `source=OUTPUT` before
    returning it. A block, invalid response, or service error selects the

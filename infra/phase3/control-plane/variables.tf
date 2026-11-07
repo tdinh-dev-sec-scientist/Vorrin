@@ -137,11 +137,12 @@ variable "rin_enabled" {
     condition = !var.rin_enabled || (
       var.enable_stage3 && var.enable_stage4 && var.monthly_budget_usd != null &&
       var.provider_monthly_budget_usd != null && var.rin_model != "" &&
+      (var.rin_provider != "bedrock" || can(regex("^us\\.(anthropic|amazon)\\.[a-z0-9-]+(\\.[a-z0-9-]+)*(:[0-9]+)?$", var.rin_model))) &&
       var.rin_guardrail_arn != "" && can(regex("^[1-9][0-9]{0,7}$", var.rin_guardrail_version)) &&
       try(var.rin_input_cost_per_million_tokens_usd > 0, false) &&
       try(var.rin_output_cost_per_million_tokens_usd > 0, false)
     )
-    error_message = "Live Rin requires Stage 3/4, owner AWS/provider budgets, an approved model and published Guardrail version, and explicit provider token rates."
+    error_message = "Live Rin requires Stage 3/4, owner AWS/provider budgets, an approved model (a us.* inference profile for Bedrock) and published Guardrail version, and explicit provider token rates."
   }
 }
 
@@ -165,6 +166,16 @@ variable "rin_guardrail_version" {
   validation {
     condition     = var.rin_guardrail_version == "" || can(regex("^[1-9][0-9]{0,7}$", var.rin_guardrail_version))
     error_message = "rin_guardrail_version must be a numeric published version, never DRAFT."
+  }
+}
+
+variable "rin_provider" {
+  description = "Rin model provider: openai (external API key in Secrets Manager) or bedrock (US inference profile, signed by the Rin role)."
+  type        = string
+  default     = "openai"
+  validation {
+    condition     = contains(["openai", "bedrock"], var.rin_provider)
+    error_message = "rin_provider must be openai or bedrock."
   }
 }
 

@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "InvokeOnlyTheApprovedRinInferenceProfile",
+      "Effect": "Allow",
+      "Action": "bedrock:InvokeModel",
+      "Resource": "${inference_profile_arn}"
+    },
+    {
+      "Sid": "InvokeTheProfileModelOnlyThroughThatProfile",
+      "Effect": "Allow",
+      "Action": "bedrock:InvokeModel",
+      "Resource": "arn:aws:bedrock:us-*::foundation-model/${foundation_model_id}",
+      "Condition": {
+        "StringEquals": {
+          "bedrock:InferenceProfileArn": "${inference_profile_arn}"
+        }
+      }
+    }
+  ]
+}
