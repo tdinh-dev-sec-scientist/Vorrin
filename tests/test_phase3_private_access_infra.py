@@ -7,6 +7,7 @@ terraform plan against a local Moto endpoint in both access modes.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -164,3 +165,29 @@ def test_terraform_workflow_passes_access_settings_and_the_csp_origin():
         '--auth-origin "https://${TF_VAR_cognito_domain_prefix}.auth.${TF_VAR_aws_region}.amazoncognito.com"'
         in workflow
     )
+
+
+def test_hosted_ui_branding_uses_only_cognito_customizable_classes():
+    access = _tf("access.tf")
+    block = _block(access, 'resource "aws_cognito_user_pool_ui_customization" "console"')
+    logo = ROOT / "infra/phase3/control-plane/assets/login-logo.png"
+    allowed = {
+        "logo-customizable", "banner-customizable", "label-customizable", "textDescription-customizable",
+        "idpDescription-customizable", "legalText-customizable", "submitButton-customizable",
+        "errorMessage-customizable", "inputField-customizable", "idpButton-customizable",
+        "socialButton-customizable", "redirect-customizable", "passwordCheck-notValid-customizable",
+        "passwordCheck-valid-customizable", "background-customizable",
+    }  # fmt: skip
+    classes = set(re.findall(r"\.([A-Za-z-]+customizable)", block))
+
+    assert "count = local.auth_enabled ? 1 : 0" in _flat(block)
+    assert classes and classes <= allowed
+    # Cognito accepts PNG or JPEG logos up to 100 KB.
+    assert logo.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n" and logo.stat().st_size < 100 * 1024
+    manage = json.loads((ROOT / "infra/phase3/policies/control-plane-apply-manage-2.json").read_text())
+    actions = {
+        a
+        for s in manage["Statement"]
+        for a in (s["Action"] if isinstance(s["Action"], list) else [s["Action"]])
+    }
+    assert "cognito-idp:SetUICustomization" in actions

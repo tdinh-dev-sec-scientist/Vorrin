@@ -129,6 +129,7 @@
         "cognito-idp:UpdateUserPoolDomain",
         "cognito-idp:DeleteUserPoolDomain",
         "cognito-idp:SetUserPoolMfaConfig",
+        "cognito-idp:SetUICustomization",
         "cognito-idp:TagResource",
         "cognito-idp:UntagResource"
       ],
