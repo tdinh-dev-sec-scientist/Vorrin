@@ -411,14 +411,14 @@ def _add_guardrail_review_artifacts(manifest: Path) -> None:
     source_artifacts = {
         "stage3/guardrail-configuration.json": {
             "schema_version": 1,
-            "guardrail_arn": guardrail_arn,
+            "guardrail_arn_sha256": hashlib.sha256(guardrail_arn.encode()).hexdigest(),
             "published_version": "1",
             "input_controls": input_controls,
             "output_controls": output_controls,
         },
         "stage3/guardrail-evaluation.json": {
             "schema_version": 1,
-            "guardrail_arn": guardrail_arn,
+            "guardrail_arn_sha256": hashlib.sha256(guardrail_arn.encode()).hexdigest(),
             "published_version": "1",
             "passed": True,
             "case_count": 7,
@@ -471,7 +471,7 @@ def _add_guardrail_review_artifacts(manifest: Path) -> None:
 
     policy = {
         "schema_version": 1,
-        "guardrail_arn": guardrail_arn,
+        "guardrail_arn_sha256": hashlib.sha256(guardrail_arn.encode()).hexdigest(),
         "published_version": "1",
         "configuration_evidence_path": "stage3/guardrail-configuration.json",
         "configuration_sha256": source_hashes["stage3/guardrail-configuration.json"],
@@ -488,7 +488,7 @@ def _add_guardrail_review_artifacts(manifest: Path) -> None:
     }
     logging = {
         "schema_version": 1,
-        "guardrail_arn": guardrail_arn,
+        "guardrail_arn_sha256": hashlib.sha256(guardrail_arn.encode()).hexdigest(),
         "published_version": "1",
         "bedrock_model_invocation_logging": {
             "enabled": False,

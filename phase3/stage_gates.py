@@ -95,9 +95,6 @@ _GUARDRAIL_EVALUATION_ACTIONS = {
 _STAGE_NUMBER = {f"stage{number}": number for number in range(1, 5)}
 _EVIDENCE_PATH = re.compile(r"^[a-z0-9][a-z0-9._/-]{0,199}$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
-_GUARDRAIL_ARN = re.compile(
-    r"^arn:(?:aws|aws-us-gov|aws-cn):bedrock:[a-z0-9-]+:[0-9]{12}:guardrail/[a-z0-9]+$"
-)
 _GUARDRAIL_VERSION = re.compile(r"^[1-9][0-9]{0,7}$")
 
 
@@ -199,7 +196,7 @@ def _valid_policy_controls(value: Any) -> bool:
 def _valid_guardrail_policy_review(document: Any, record: dict[str, Any], *, evidence_root: Path) -> bool:
     required_fields = {
         "schema_version",
-        "guardrail_arn",
+        "guardrail_arn_sha256",
         "published_version",
         "configuration_evidence_path",
         "configuration_sha256",
@@ -214,8 +211,8 @@ def _valid_guardrail_policy_review(document: Any, record: dict[str, Any], *, evi
         or set(document) != required_fields
         or type(document.get("schema_version")) is not int
         or document["schema_version"] != 1
-        or not isinstance(document.get("guardrail_arn"), str)
-        or not _GUARDRAIL_ARN.fullmatch(document["guardrail_arn"])
+        or not isinstance(document.get("guardrail_arn_sha256"), str)
+        or not _SHA256.fullmatch(document["guardrail_arn_sha256"])
         or not isinstance(document.get("published_version"), str)
         or not _GUARDRAIL_VERSION.fullmatch(document["published_version"])
         or document.get("configuration_evidence_path") != _STAGE3_GUARDRAIL_CONFIGURATION
@@ -246,10 +243,16 @@ def _valid_guardrail_configuration_capture(document: Any, review: dict[str, Any]
     return (
         isinstance(document, dict)
         and set(document)
-        == {"schema_version", "guardrail_arn", "published_version", "input_controls", "output_controls"}
+        == {
+            "schema_version",
+            "guardrail_arn_sha256",
+            "published_version",
+            "input_controls",
+            "output_controls",
+        }
         and type(document.get("schema_version")) is int
         and document["schema_version"] == 1
-        and document.get("guardrail_arn") == review["guardrail_arn"]
+        and document.get("guardrail_arn_sha256") == review["guardrail_arn_sha256"]
         and document.get("published_version") == review["published_version"]
         and _valid_policy_controls(document.get("input_controls"))
         and _valid_policy_controls(document.get("output_controls"))
@@ -262,10 +265,10 @@ def _valid_guardrail_evaluation_capture(document: Any, review: dict[str, Any]) -
     if (
         not isinstance(document, dict)
         or set(document)
-        != {"schema_version", "guardrail_arn", "published_version", "passed", "case_count", "cases"}
+        != {"schema_version", "guardrail_arn_sha256", "published_version", "passed", "case_count", "cases"}
         or type(document.get("schema_version")) is not int
         or document["schema_version"] != 1
-        or document.get("guardrail_arn") != review["guardrail_arn"]
+        or document.get("guardrail_arn_sha256") != review["guardrail_arn_sha256"]
         or document.get("published_version") != review["published_version"]
         or document.get("passed") is not True
         or document.get("passed") != review["evaluation"]["passed"]
@@ -359,13 +362,13 @@ def _valid_bedrock_logging_review(
     document: Any,
     record: dict[str, Any],
     *,
-    guardrail_arn: str,
+    guardrail_arn_sha256: str,
     published_version: str,
     evidence_root: Path,
 ) -> bool:
     required_fields = {
         "schema_version",
-        "guardrail_arn",
+        "guardrail_arn_sha256",
         "published_version",
         "bedrock_model_invocation_logging",
         "external_provider_logging",
@@ -378,7 +381,7 @@ def _valid_bedrock_logging_review(
         or set(document) != required_fields
         or type(document.get("schema_version")) is not int
         or document["schema_version"] != 1
-        or document.get("guardrail_arn") != guardrail_arn
+        or document.get("guardrail_arn_sha256") != guardrail_arn_sha256
         or document.get("published_version") != published_version
         or not _valid_review_metadata(document, record)
     ):
@@ -429,7 +432,7 @@ def _validate_stage3_review_artifacts(record: dict[str, Any], *, root: Path) -> 
     if not _valid_bedrock_logging_review(
         logging,
         record,
-        guardrail_arn=policy["guardrail_arn"],
+        guardrail_arn_sha256=policy["guardrail_arn_sha256"],
         published_version=policy["published_version"],
         evidence_root=evidence_root,
     ):

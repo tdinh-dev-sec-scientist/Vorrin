@@ -249,3 +249,39 @@ def test_workload_boundary_caps_model_invocation_to_us_profiles():
         "arn:aws:bedrock:${region}:${account_id}:inference-profile/us.*",
         "arn:aws:bedrock:us-*::foundation-model/*",
     ]
+
+
+def test_bedrock_schema_restricts_fingerprint_and_citations_to_the_supplied_finding():
+    request_input = json.dumps(
+        {
+            "findings": [
+                {
+                    "fingerprint": "a111111111111111",
+                    "citation_catalog": {"REMEDIATION": "x", "DESCRIPTION": "y"},
+                }
+            ]
+        }
+    )
+    schema = rin_service._rin_output_schema(request_input)
+    item = schema["properties"]["analyses"]["items"]["properties"]
+    assert item["fingerprint"] == {"type": "string", "enum": ["a111111111111111"]}
+    assert item["citations"]["items"] == {"type": "string", "enum": ["DESCRIPTION", "REMEDIATION"]}
+    assert item["citations"]["minItems"] == 1 and item["citations"]["uniqueItems"] is True
+    assert schema["properties"]["analyses"]["maxItems"] == 1
+    assert schema["properties"]["schema_version"]["enum"] == ["1.0.0"]
+    client = Converse(_tool_response(_provider_result("a111111111111111")))
+    rin_service._bedrock_converse(client, {**_request(), "input": request_input})
+    sent = client.calls[0]["toolConfig"]["tools"][0]["toolSpec"]["inputSchema"]["json"]
+    assert sent["properties"]["analyses"]["items"]["properties"]["citations"]["items"]["enum"] == [
+        "DESCRIPTION",
+        "REMEDIATION",
+    ]
+
+
+@pytest.mark.parametrize(
+    "request_input", ["not json", "{}", '{"findings": []}', '{"findings": [{"fingerprint": 1}]}']
+)
+def test_bedrock_schema_falls_back_to_the_generic_schema_for_unexpected_input(request_input):
+    item = rin_service._rin_output_schema(request_input)["properties"]["analyses"]["items"]["properties"]
+    assert item["fingerprint"] == {"type": "string"}
+    assert item["proposal"] == {"type": "null"}

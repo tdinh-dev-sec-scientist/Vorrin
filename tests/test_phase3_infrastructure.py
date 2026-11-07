@@ -389,7 +389,10 @@ def test_control_plane_stage_enables_require_checked_in_predecessor_acceptance_e
     assert 'case.observed_action == "BLOCK"' in control_plane
     assert "phase3_stage3_bedrock_logging.includes_prompt_content ==" in control_plane
     assert "phase3_stage3_external_logging.retention_days ==" in control_plane
-    assert "phase3_stage3_guardrail_review.guardrail_arn == var.rin_guardrail_arn" in control_plane
+    assert (
+        "phase3_stage3_guardrail_review.guardrail_arn_sha256 == sha256(var.rin_guardrail_arn)"
+        in control_plane
+    )
     assert "phase3_stage3_guardrail_review.published_version == var.rin_guardrail_version" in control_plane
     assert (
         "exact Guardrail ARN and published version covered by the reviewed Stage 3 evidence" in control_plane
