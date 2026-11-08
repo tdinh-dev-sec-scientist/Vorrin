@@ -4,7 +4,7 @@ Reviewed by Truong Dinh on 2026-11-07. This is the estimate behind the
 `PHASE3_AWS_ESTIMATE_MONTHLY_USD` and `PHASE3_AWS_ESTIMATE_REFERENCE`
 variables that Stage 2 requires.
 
-**Estimate: $2.43 per month, recorded as $3. Owner cap
+**Estimate: $2.93 per month, recorded as $3. Owner cap
 (`PHASE3_MONTHLY_BUDGET_USD`): $10.**
 
 ## Method
@@ -29,8 +29,9 @@ traffic from invited users.
 | Amazon CloudWatch Logs | 1 GB ingested and stored | $0.50 per GB ingested, $0.03 per GB-month (2026-11-04) | $0.53 |
 | AWS Step Functions (standard) | 130 executions × 10 transitions | $0.000025 per transition (2026-11-04) | $0.03 |
 | Amazon CloudFront | 1 GB out, 10,000 HTTPS requests | $0.085 per GB, $0.01 per 10,000 HTTPS requests (2026-10-19) | $0.10 |
+| Amazon Route 53 | 1 hosted zone (`vorrin.<domain>`, added 2026-11-08), under 1 million queries | $0.50 per hosted zone, $0.40 per million queries | $0.50 |
 | Amazon Cognito (Essentials) | under 10 monthly active users | under the 10,000 MAU free tier (2026-10-20) | $0.00 |
-| **Total** | | | **$2.43** |
+| **Total** | | | **$2.93** |
 
 The demo account's CloudTrail trail is its first management-event trail,
 which carries no trail charge; its S3 log storage is within the S3 line.
