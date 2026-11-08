@@ -1,0 +1,22 @@
+{
+  "cases": {
+    "daily": {
+      "limit_reached": true,
+      "response_mode": "fixture"
+    },
+    "monthly_budget": {
+      "limit_reached": true,
+      "response_mode": "fixture"
+    },
+    "session": {
+      "limit_reached": true,
+      "response_mode": "fixture"
+    }
+  },
+  "daily_invocation_limit": 19,
+  "monthly_budget_usd": 5.0,
+  "per_session_limit": 10,
+  "reviewed_at": "2026-11-08T10:05:32-05:00",
+  "reviewed_by": "Truong Dinh",
+  "schema_version": 1
+}

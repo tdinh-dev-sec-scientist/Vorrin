@@ -1,0 +1,17 @@
+{
+  "accessibility_report_evidence_path": "stage3/source-reports/accessibility.json",
+  "accessibility_report_sha256": "249cb43bc2401fe977a8433263dc0ac56ef05986137a18e0cd8773ce6d58f740",
+  "browser_network_log_sha256": "89e2cae6f041a337e86331aa2cfe9a82d680e299f48163891ce2bf79495282f8",
+  "browser_network_report_evidence_path": "stage3/source-reports/browser-network.json",
+  "lighthouse_report_evidence_path": "stage3/source-reports/lighthouse.json",
+  "lighthouse_report_sha256": "0927302a51023e4ebcc69cadb32e5263f2f4260d2e6fae02bf191da780777bf0",
+  "pages_checked": [
+    "dashboard",
+    "finding",
+    "rin"
+  ],
+  "reviewed_at": "2026-11-08T10:05:32-05:00",
+  "reviewed_by": "Truong Dinh",
+  "schema_version": 1,
+  "unapproved_third_party_requests": []
+}

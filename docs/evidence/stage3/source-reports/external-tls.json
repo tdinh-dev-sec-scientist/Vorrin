@@ -1,0 +1,61 @@
+{
+  "host": "vorrin.truongdinh.dev",
+  "http_redirect": {
+    "location": "https://vorrin.truongdinh.dev/",
+    "status": 301
+  },
+  "https": {
+    "certificate": {
+      "days_remaining": 197,
+      "negotiated_protocol": "TLSv1.3",
+      "not_after": "2027-05-25T03:56:28+00:00",
+      "verified_for_host": true
+    },
+    "header_checks": {
+      "content_security_policy": true,
+      "frame_ancestors": true,
+      "referrer_policy": true,
+      "strict_transport_security": true,
+      "x_content_type_options": true
+    },
+    "status": 200
+  },
+  "mozilla_observatory": {
+    "algorithm_version": 6,
+    "details_url": "https://developer.mozilla.org/en-US/observatory/analyze?host=vorrin.truongdinh.dev",
+    "error": null,
+    "grade": "A+",
+    "id": 134226768,
+    "scanned_at": "2026-11-08T14:28:31.712Z",
+    "score": 125,
+    "status_code": 200,
+    "tests_failed": 0,
+    "tests_passed": 12,
+    "tests_quantity": 12
+  },
+  "scanned_at": "2026-11-08T09:28:32-05:00",
+  "schema_version": 1,
+  "ssllabs": null,
+  "tls_protocol_probe": {
+    "1.0": {
+      "curl_exit": 35,
+      "http_code": "000",
+      "probe_supported": true
+    },
+    "1.1": {
+      "curl_exit": 35,
+      "http_code": "000",
+      "probe_supported": true
+    },
+    "1.2": {
+      "curl_exit": 0,
+      "http_code": "200",
+      "probe_supported": true
+    },
+    "1.3": {
+      "curl_exit": 4,
+      "http_code": "000",
+      "probe_supported": false
+    }
+  }
+}

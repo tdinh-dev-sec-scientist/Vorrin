@@ -1,0 +1,23 @@
+{
+  "bedrock_model_invocation_logging": {
+    "enabled": false,
+    "evidence_path": "stage3/bedrock-logging-settings.json",
+    "includes_prompt_content": false,
+    "retention_days": null,
+    "settings_sha256": "ed4fa1573886e7680d2cf1591018d7f8d7aec1d7718049c146e8c7dd06f310b7"
+  },
+  "external_provider_logging": {
+    "enabled": false,
+    "evidence_path": "stage3/external-provider-logging-settings.json",
+    "includes_prompt_content": false,
+    "provider": "none (Rin uses Amazon Bedrock in the control-plane account)",
+    "retention_days": null,
+    "settings_sha256": "ef8b932ed6911a47fd085a6bdd565d9f798df9f88ae9a81e2bce02c744a922d3"
+  },
+  "guardrail_arn_sha256": "799e18517516f01178033966632b225299da919b51c95030e09f2d0e6f3355cf",
+  "maximum_prompt_retention_days": 30,
+  "published_version": "3",
+  "reviewed_at": "2026-11-08T10:05:32-05:00",
+  "reviewed_by": "Truong Dinh",
+  "schema_version": 1
+}

@@ -1,0 +1,16 @@
+{
+  "external_scan_evidence_path": "stage3/external-tls-scan.json",
+  "external_scan_sha256": "d738ab17e1a37ae9e6490ba01b244204cd207b1cdea7d5be9ecf4fcff8823a10",
+  "headers": {
+    "content_security_policy": true,
+    "frame_ancestors": true,
+    "referrer_policy": true,
+    "strict_transport_security": true,
+    "x_content_type_options": true
+  },
+  "http_redirect_status": 301,
+  "https_status": 200,
+  "reviewed_at": "2026-11-08T10:05:32-05:00",
+  "reviewed_by": "Truong Dinh",
+  "schema_version": 1
+}
