@@ -223,7 +223,9 @@ acceptance.
 3. Before recovery, review AWS and provider actuals, resolve the cause, verify
    key/model/budget settings, and re-run the security and resilience checks.
    Re-enable only through a reviewed Terraform replacement of the platform
-   configuration item. Routine plans ignore item changes so a normal apply
+   configuration item: run the Phase 3 Terraform workflow for `control-plane`
+   with `replace_platform_flags` checked, review the plan, then approve the
+   apply. The same step turns Rin on the first time. Routine plans ignore item changes so a normal apply
    cannot silently undo a kill switch. Keep the schedule, Rin, and public
    stages disabled if cost or evidence is uncertain.
 
