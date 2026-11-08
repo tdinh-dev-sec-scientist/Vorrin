@@ -7,7 +7,7 @@
 A Chromium window opens on the console. Sign in yourself (email, password,
 authenticator code): the script never sees or stores credentials. As soon as
 the console shows "Sign out", it drives the tour on its own with a visible
-cursor and slow typing, then saves a 1920x1080 video:
+cursor and slow typing, then saves a 1440x810 video (16:9, --size to change):
 
     build/demo/console-walkthrough.webm
 
@@ -29,7 +29,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "build/demo/console-walkthrough.webm"
-SIZE = {"width": 1920, "height": 1080}
+DEFAULT_SIZE = "1440x810"  # fits a MacBook screen; 16:9, upscales cleanly to 1080p
 
 # A visible cursor: recorded video does not include the OS pointer.
 CURSOR_SCRIPT = """
@@ -89,6 +89,13 @@ class Tour:
 
 
 def wait_for_sign_in(page, timeout_minutes: float) -> None:
+    button = page.locator("#auth-button")
+    try:
+        button.wait_for(state="visible", timeout=15_000)
+        if (page.locator("#auth-label").text_content() or "").strip() != "Sign out":
+            button.click()  # opens the Cognito sign-in page; you type the credentials
+    except Exception:
+        print("Could not find the Sign in button; click it yourself.")
     print("Sign in in the browser window. The tour starts when the console shows 'Sign out'.")
     page.wait_for_function(
         "() => (document.getElementById('auth-label') || {}).textContent === 'Sign out'",
@@ -149,7 +156,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--pace", type=float, default=1.0, help="multiply every pause (e.g. 1.3 is slower)")
     parser.add_argument("--sign-in-minutes", type=float, default=5)
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument(
+        "--size", default=DEFAULT_SIZE, help="browser and video size, WIDTHxHEIGHT (default 1440x810)"
+    )
     args = parser.parse_args(argv)
+    try:
+        width, height = (int(part) for part in args.size.lower().split("x"))
+    except ValueError:
+        parser.error("--size must look like 1440x810")
+    size = {"width": width, "height": height}
     if args.headless and not args.no_login:
         parser.error("--headless needs --no-login: you sign in in a visible window")
 
@@ -160,13 +175,13 @@ def main(argv: list[str] | None = None) -> int:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
             headless=args.headless,
-            args=["--window-size=1920,1160"],
+            args=[f"--window-size={size['width']},{size['height'] + 90}"],
             executable_path=os.environ.get("CHROMIUM_PATH") or None,
         )
         context = browser.new_context(
-            viewport=SIZE,
+            viewport=size,
             record_video_dir=str(video_dir),
-            record_video_size=SIZE,
+            record_video_size=size,
             color_scheme="dark",
         )
         context.add_init_script(CURSOR_SCRIPT)
