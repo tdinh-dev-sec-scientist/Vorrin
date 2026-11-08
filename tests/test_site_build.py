@@ -299,8 +299,8 @@ def test_console_assistant_keeps_local_fallback_and_gates_live_rin(console, site
 
 def test_console_uses_the_vorrin_brand_in_the_title_and_navigation(console):
     assert "<title>Security Overview · Vorrin</title>" in console
-    assert 'aria-label="Vorrin Cloud Security home"' in console
-    assert '<span class="brand-copy"><strong>Vorrin</strong><small>Cloud Security</small></span>' in console
+    assert 'aria-label="Vorrin Cloud Security"' in console
+    assert '<span class="brand-copy"><strong>Vorrin</strong> <small>Cloud Security</small></span>' in console
 
 
 def test_console_names_rin_and_keeps_the_assistant_grounded(console, site):

@@ -377,7 +377,7 @@
         executionStatus: current().run.executionStatus,
         gateStatus: current().run.gateStatus,
       }));
-      document.getElementById("nav-finding-count").textContent = String(live.openFindingCount);
+      document.getElementById("nav-finding-count").dataset.count = String(live.openFindingCount);
       updateAssistantMode();
       setView(activeView);
     } catch (_error) {
@@ -1155,7 +1155,7 @@
     if (!profiles[key]) return;
     activeProfile = key;
     document.getElementById("scope-select").value = key;
-    document.getElementById("nav-finding-count").textContent = String(current().openFindingCount);
+    document.getElementById("nav-finding-count").dataset.count = String(current().openFindingCount);
     document.getElementById("assistant-messages").replaceChildren();
     assistantWelcomed = false;
     if (key === "live") {
@@ -1510,7 +1510,7 @@
     }
   });
 
-  document.getElementById("nav-finding-count").textContent = String(current().openFindingCount);
+  document.getElementById("nav-finding-count").dataset.count = String(current().openFindingCount);
   applyTheme(savedTheme(), false);
   setView("overview");
   const authButton = document.getElementById("auth-button");

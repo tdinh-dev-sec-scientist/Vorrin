@@ -79,13 +79,13 @@
       "command": "pytest tests/test_fixture_manifest.py"
     },
     "tests": {
-      "total": 1528,
-      "passed": 1528,
+      "total": 1737,
+      "passed": 1737,
       "failed": 0,
-      "skipped": 16,
+      "skipped": 25,
       "exit_code": 0,
       "source_command": "pytest",
-      "value": 1528,
+      "value": 1737,
       "evidence": "results/metrics_sources.json",
       "command": "pytest"
     },
