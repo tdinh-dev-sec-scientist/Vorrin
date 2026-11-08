@@ -96,7 +96,7 @@ def run_axe(page) -> list[dict[str, Any]]:
     page.evaluate(AXE.read_text(encoding="utf-8"))
     results = page.evaluate(
         "async () => { const r = await axe.run(document, {resultTypes: ['violations']});"
-        " return r.violations.map(v => ({id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.length})); }"
+        " return r.violations.map(v => ({id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.length, targets: v.nodes.slice(0, 5).map(n => n.target.join(' '))})); }"
     )
     return results
 
@@ -191,6 +191,7 @@ def run_lighthouse(url: str) -> dict[str, Any]:
                 LIGHTHOUSE,
                 url,
                 "--quiet",
+                "--no-enable-error-reporting",
                 "--output=json",
                 f"--output-path={output}",
                 "--only-categories=performance,accessibility,best-practices,seo",
@@ -235,7 +236,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"Unapproved third-party origins: {third_party or 'none'}")
     for page, violations in browsed["axe"].items():
-        summary = ", ".join(f"{v['id']} ({v['impact']})" for v in violations) or "none"
+        summary = (
+            ", ".join(f"{v['id']} ({v['impact']}) at {', '.join(v.get('targets', []))}" for v in violations)
+            or "none"
+        )
         print(f"axe {page}: {summary}")
     for category, data in lighthouse.get("categories", {}).items():
         print(f"Lighthouse {category}: {round((data.get('score') or 0) * 100)}")
