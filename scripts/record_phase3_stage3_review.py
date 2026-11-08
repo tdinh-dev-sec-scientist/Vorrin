@@ -243,7 +243,9 @@ def record_review(
     record = stage_record(root, files, reviewer, reviewed_at)
     quota = json.loads(files["stage3/quota-fallbacks.json"])
     with tempfile.TemporaryDirectory() as scratch:
-        scratch_root = Path(scratch)
+        # Resolve symlinks (macOS temp dirs live under /var -> /private/var) so
+        # the gate sees docs/evidence inside the scratch root.
+        scratch_root = Path(scratch).resolve()
         shutil.copytree(root / "docs/evidence", scratch_root / "docs/evidence")
         write(scratch_root, files, record)
         check(scratch_root, record, quota)

@@ -231,3 +231,21 @@ def test_missing_collector_output_is_named(workspace):
     (drafts / "rin-evaluation.json").unlink()
     with pytest.raises(review.ReviewError, match="rin-evaluation.json"):
         review.record_review(root, drafts, "Reviewer", confirm=False, reviewed_at=REVIEWED_AT)
+
+
+def test_scratch_check_works_when_the_temp_dir_is_a_symlink(workspace, tmp_path_factory, monkeypatch):
+    """macOS temp dirs are reached through /var, a symlink to /private/var."""
+    import contextlib
+    import os
+
+    root, drafts = workspace
+    real = tmp_path_factory.mktemp("real-scratch")
+    link = tmp_path_factory.mktemp("links") / "scratch"
+    os.symlink(real, link)
+
+    @contextlib.contextmanager
+    def symlinked_temp_dir():
+        yield str(link)
+
+    monkeypatch.setattr(review.tempfile, "TemporaryDirectory", symlinked_temp_dir)
+    review.record_review(root, drafts, "Reviewer", confirm=False, reviewed_at=REVIEWED_AT)
