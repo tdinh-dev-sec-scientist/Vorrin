@@ -259,8 +259,12 @@ variable "domain_name" {
   type        = string
   default     = ""
   validation {
-    condition     = var.domain_name == "" || (var.hosted_zone_id != "" && can(regex("^arn:[^:]+:acm:us-east-1:[0-9]{12}:certificate/.+$", var.certificate_arn)))
-    error_message = "A custom domain requires its hosted zone and an ACM certificate ARN in us-east-1."
+    condition = var.domain_name == "" || (
+      startswith(var.domain_name, "${var.bucket_prefix}.") &&
+      var.hosted_zone_id != "" &&
+      can(regex("^arn:[^:]+:acm:us-east-1:[0-9]{12}:certificate/.+$", var.certificate_arn))
+    )
+    error_message = "A custom domain must be <bucket_prefix>.<your domain> (the apply role may only change that record) and needs its hosted zone and an ACM certificate ARN in us-east-1."
   }
 }
 

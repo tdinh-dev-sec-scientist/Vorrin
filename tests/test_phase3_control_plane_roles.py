@@ -189,6 +189,17 @@ def test_name_scoped_writes_stay_inside_the_bucket_prefix(documents):
                 for action in _actions(statement)
             ), statement["Sid"]
             continue
+        if _actions(statement) == ["route53:ChangeResourceRecordSets"]:
+            # Hosted zone IDs are generated, so the zone is a wildcard; the
+            # conditions limit changes to A records named <prefix>.<domain>.
+            assert _resources(statement) == ["arn:aws:route53:::hostedzone/*"]
+            assert statement["Condition"] == {
+                "ForAllValues:StringEquals": {"route53:ChangeResourceRecordSetsRecordTypes": ["A"]},
+                "ForAllValues:StringLike": {
+                    "route53:ChangeResourceRecordSetsNormalizedRecordNames": ["vorrin.*"]
+                },
+            }
+            continue
         if _actions(statement) == ["states:ValidateStateMachineDefinition"]:
             # Validation only checks a definition; AWS authorizes it on stateMachine:*.
             assert _resources(statement) == ["arn:aws:states:us-east-1:111122223333:stateMachine:*"]
