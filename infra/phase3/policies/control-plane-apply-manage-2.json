@@ -166,6 +166,24 @@
         "ec2:DeleteTags"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "ManageOnlyConsoleAliasRecords",
+      "Effect": "Allow",
+      "Action": "route53:ChangeResourceRecordSets",
+      "Resource": "arn:aws:route53:::hostedzone/*",
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "route53:ChangeResourceRecordSetsRecordTypes": [
+            "A"
+          ]
+        },
+        "ForAllValues:StringLike": {
+          "route53:ChangeResourceRecordSetsNormalizedRecordNames": [
+            "${bucket_prefix}.*"
+          ]
+        }
+      }
     }
   ]
 }

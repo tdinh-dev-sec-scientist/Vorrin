@@ -79,6 +79,9 @@ jobs:
       TF_VAR_access_mode: ${{ vars.PHASE3_ACCESS_MODE || 'invite_only' }}
       TF_VAR_cognito_domain_prefix: ${{ vars.PHASE3_COGNITO_DOMAIN_PREFIX || '' }}
       TF_VAR_auth_extra_callback_urls: ${{ vars.PHASE3_AUTH_EXTRA_CALLBACK_URLS || '[]' }}
+      TF_VAR_domain_name: ${{ vars.PHASE3_DOMAIN_NAME || '' }}
+      TF_VAR_hosted_zone_id: ${{ vars.PHASE3_HOSTED_ZONE_ID || '' }}
+      TF_VAR_certificate_arn: ${{ vars.PHASE3_CERTIFICATE_ARN || '' }}
     steps:
       # Values pasted into GitHub's variable form can carry an invisible
       # trailing newline ("r-abcd\r\n"), which Terraform rejects. Strip line
