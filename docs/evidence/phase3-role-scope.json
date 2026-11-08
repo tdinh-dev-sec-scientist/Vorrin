@@ -58,7 +58,7 @@
         "status": "reviewed",
         "role_arn_sha256": "8b25277cc37f8601be56283845045b6cfafb1d1e94bc7e8839b8d80d1ab7e95c",
         "reviewed_by": "Truong Dinh",
-        "reviewed_at": "2026-11-05T22:25:44+00:00",
+        "reviewed_at": "2026-11-08T04:10:38+00:00",
         "evidence": [
           "terraform-roles/control-plane/plan/attached-policies.json",
           "terraform-roles/control-plane/plan/inline-policies.json",
@@ -67,14 +67,14 @@
         ],
         "evidence_sha256": {
           "terraform-roles/control-plane/plan/attached-policies.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-          "terraform-roles/control-plane/plan/inline-policies.json": "afd850d699908cdeed92ab616af70288b23d9c730e0fb1554fd46f899dd838b1",
+          "terraform-roles/control-plane/plan/inline-policies.json": "c9f847e185b3f96a73b0a04da3ed3bb17aa157d394850a9617576e5a7786d0e3",
           "terraform-roles/control-plane/plan/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
           "terraform-roles/control-plane/plan/trust-policy.json": "facde397472a1d7b8e7844dc3efad76485ec19fa5bb0c8e9d36af21c15678153"
         },
         "source_evidence_sha256": {
           ".private-role-captures/control-plane/plan/attached-policies.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
           ".private-role-captures/control-plane/plan/capture-metadata.json": "34c7226eb3ad949c8ba4673002917e3091872a6c93669966eee959dcca28eef5",
-          ".private-role-captures/control-plane/plan/inline-policies.json": "1245b1349047400033e762b8e166e2d7c4a814795e88df6c9b03af2975615fef",
+          ".private-role-captures/control-plane/plan/inline-policies.json": "68c550e49e17a4f57e2a9920651c6aaa1d53c95c81e79ccf21f225fb950597aa",
           ".private-role-captures/control-plane/plan/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
           ".private-role-captures/control-plane/plan/trust-policy.json": "132ff60e5e0f81264d7f59dfcfcd5881a25e90e81e58606d7615387f379a7b56"
         }

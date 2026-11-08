@@ -37,6 +37,10 @@
             "logs:Describe*",
             "logs:Get*",
             "logs:List*",
+            "route53:GetChange",
+            "route53:GetHostedZone",
+            "route53:ListResourceRecordSets",
+            "route53:ListTagsForResource",
             "s3:Describe*",
             "s3:Get*",
             "s3:List*",
@@ -79,6 +83,12 @@
             "arn:aws:iam::<TARGET_ACCOUNT>:policy/<RESOURCE>",
             "arn:aws:iam::<TARGET_ACCOUNT>:oidc-provider/<RESOURCE>"
           ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": "states:ValidateStateMachineDefinition",
+          "Effect": "Allow",
+          "Resource": "arn:aws:states:us-east-1:<TARGET_ACCOUNT>:stateMachine:<RESOURCE_PATTERN>",
           "Sid": "<STATEMENT_ID>"
         },
         {
