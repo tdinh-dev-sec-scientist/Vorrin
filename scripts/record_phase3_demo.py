@@ -13,7 +13,8 @@ cursor and slow typing, then saves a 1440x810 video (16:9, --size to change):
 
 Tour: Overview, AWS Accounts, Security Scans, Findings (search "S3" and open
 the finding), Drift History, Security & Limits, then Rin: it opens the
-assistant and asks three questions. The sign-in part is at the start of the
+assistant, asks one question (answered live by Claude Haiku when Rin is
+enabled), scrolls through the cited answer, and opens the cited finding. The sign-in part is at the start of the
 video; trim it or keep it as the "invite-only with MFA" scene.
 
 Use --no-login with a local build (scripts/build_phase3_web.py) to rehearse.
@@ -131,18 +132,32 @@ def run_tour(tour: Tour) -> None:
 
     tour.click(page.locator("#assistant-launcher"))
     tour.pause(2)
-    for question in (
-        "What is the top finding?",
-        "How do I fix the S3 public access finding?",
-        "How does Rin keep my data safe?",
-    ):
+    # Live Rin answers one redacted finding with Claude Haiku (one quota unit
+    # per question; 19 a day). In fixture mode the same question gets the
+    # prepared answer instead.
+    for question in ("Why is this risky and how do I fix it?",):
         tour.type(page.locator("#assistant-input"), question)
         page.keyboard.press("Enter")
-        tour.pause(6)
-        page.locator("#assistant-messages").evaluate(
-            "node => node.scrollTo({top: node.scrollHeight, behavior: 'smooth'})"
-        )
-        tour.pause(3)
+        try:
+            page.wait_for_function(
+                "() => { const all = [...document.querySelectorAll('#assistant-messages > *')];"
+                " const last = all[all.length - 1];"
+                " return all.length > 2 && last && !last.textContent.includes('Checking the selected'); }",
+                timeout=45_000,
+            )
+        except Exception:
+            print("Rin did not answer within 45 seconds; the video keeps whatever is shown.")
+        tour.pause(2)
+        messages = page.locator("#assistant-messages")
+        # Scroll slowly through the answer, uncertainty, and citations.
+        for _ in range(8):
+            messages.evaluate("node => node.scrollBy({top: 140, behavior: 'smooth'})")
+            tour.pause(1.6)
+        tour.pause(2)
+        action = page.locator(".assistant-finding-action").last
+        if action.count():
+            tour.click(action)
+            tour.pause(5)
     tour.pause(2)
 
 
