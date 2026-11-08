@@ -83,7 +83,7 @@
         "status": "reviewed",
         "role_arn_sha256": "0b6251da87604181a5f4622ee286cd7dcc53afb207ca7ad68fe40f9aad625d80",
         "reviewed_by": "Truong Dinh",
-        "reviewed_at": "2026-11-07T20:05:00+00:00",
+        "reviewed_at": "2026-11-08T04:12:01+00:00",
         "evidence": [
           "terraform-roles/control-plane/apply/attached-policies.json",
           "terraform-roles/control-plane/apply/inline-policies.json",
@@ -91,15 +91,15 @@
           "terraform-roles/control-plane/apply/trust-policy.json"
         ],
         "evidence_sha256": {
-          "terraform-roles/control-plane/apply/attached-policies.json": "f79127ea94d5f4e090a50c6801d3b54f485f78c71c9510e9befc0be29a3bd53a",
-          "terraform-roles/control-plane/apply/inline-policies.json": "f1fbd7a567d7d44bf3d943c9f5a8fd9b5d1a9b3cc25dcf549be57ce9d84c9af0",
+          "terraform-roles/control-plane/apply/attached-policies.json": "b7f994221f724e07068e2e8dd18aa7619b383990a5abbc5ec514e1dbb65e467d",
+          "terraform-roles/control-plane/apply/inline-policies.json": "e21a5ac9bab5966f207459be5912ff1829f0c7d289c07f742e9682dc2c844ae7",
           "terraform-roles/control-plane/apply/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
           "terraform-roles/control-plane/apply/trust-policy.json": "0cfdfa337e1f6a3b4b3df75a7d4e33d61b6f61932ee5f7a944d9be6643ece846"
         },
         "source_evidence_sha256": {
-          ".private-role-captures/control-plane/apply/attached-policies.json": "95ba462563504750c04b9a3f7fb99f072077df1542c7e150bc28b666f0d429b9",
+          ".private-role-captures/control-plane/apply/attached-policies.json": "8ce2ded7c9d3fa716dbc821c466dccdcf122e470d946244d8023beb037b2ca3e",
           ".private-role-captures/control-plane/apply/capture-metadata.json": "ee7af8c4f697dff5fab2ac04aaebdbfcaee14a09c80c6f72ee78f6a143bab96b",
-          ".private-role-captures/control-plane/apply/inline-policies.json": "c5e2bb29d9ef9776d2edbe6a98d9edb6863ba89580e92b011471892642d488bc",
+          ".private-role-captures/control-plane/apply/inline-policies.json": "b5e76d54861407e94942ca82638dc405588b7ce95a7e8c3e08a7ca6338a63282",
           ".private-role-captures/control-plane/apply/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
           ".private-role-captures/control-plane/apply/trust-policy.json": "eb2b47b6c6bb6c6fc642bc22c2dbb5c61d1eb46907a074c8f6aa8edddcf2dee0"
         }
