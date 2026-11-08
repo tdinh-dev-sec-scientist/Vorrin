@@ -130,16 +130,28 @@ def test_readme_demo_video_is_linked_and_labelled_as_non_live():
     assert (ROOT / "docs/media/vorrin-demo.mp4").stat().st_size > 0
 
 
-def test_stage_three_guardrail_review_criteria_remain_pending_until_structured_evidence_exists():
+def test_stage_three_passed_only_with_reviewed_guardrail_and_logging_evidence():
+    from phase3.stage_gates import _validate_stage_record
+
     manifest = json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text(encoding="utf-8"))
     stage3 = manifest["stages"]["stage3"]
 
     assert manifest["schema_version"] == 3
-    assert stage3["status"] == "pending"
-    assert stage3["criteria"]["published_guardrail_policy_review"] is False
-    assert stage3["criteria"]["bedrock_invocation_logging_review"] is False
-    assert stage3["evidence"] == []
-    assert stage3["evidence_sha256"] == {}
+    assert stage3["status"] == "passed"
+    assert stage3["criteria"]["published_guardrail_policy_review"] is True
+    assert stage3["criteria"]["bedrock_invocation_logging_review"] is True
+    assert "stage3/guardrail-policy-review.json" in stage3["evidence"]
+    assert "stage3/bedrock-logging-review.json" in stage3["evidence"]
+    # The checked-in record passes the same gate Terraform runs, with the
+    # configured Rin budget ($5/month) and daily cap (19 questions).
+    assert _validate_stage_record(
+        "stage3",
+        stage3,
+        root=ROOT,
+        expected_daily_invocation_limit=19,
+        expected_monthly_budget_usd=5.0,
+        require_runtime_bindings=True,
+    )
 
 
 def test_stage_three_review_requires_digest_bound_captures_and_short_prompt_retention():
