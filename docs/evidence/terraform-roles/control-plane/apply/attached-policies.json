@@ -1,6 +1,6 @@
 [
   {
-    "DefaultVersionId": "v2",
+    "DefaultVersionId": "v3",
     "PolicyArn": "arn:aws:iam::<TARGET_ACCOUNT>:policy/<RESOURCE>",
     "PolicyDocument": {
       "Statement": [
@@ -168,6 +168,24 @@
           ],
           "Effect": "Allow",
           "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": "route53:ChangeResourceRecordSets",
+          "Condition": {
+            "ForAllValues:StringEquals": {
+              "<CONDITION_KEY_1>": [
+                "<CONDITION_VALUE>"
+              ]
+            },
+            "ForAllValues:StringLike": {
+              "<CONDITION_KEY_1>": [
+                "<CONDITION_VALUE>"
+              ]
+            }
+          },
+          "Effect": "Allow",
+          "Resource": "arn:aws:route53:::hostedzone/<RESOURCE_PATTERN>",
           "Sid": "<STATEMENT_ID>"
         }
       ],
