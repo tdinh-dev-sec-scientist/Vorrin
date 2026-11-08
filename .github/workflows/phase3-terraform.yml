@@ -17,6 +17,11 @@ on:
         type: boolean
         required: true
         default: false
+      replace_platform_flags:
+        description: control-plane only. Re-create the Rin/static-mode flag item from Terraform variables (the reviewed way to turn Rin on, or to recover after the budget kill switch)
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -201,7 +206,18 @@ jobs:
             -backend-config="dynamodb_table=$TF_STATE_LOCK_TABLE" \
             -backend-config="encrypt=true"
           terraform validate -no-color
-          terraform plan -input=false -no-color -out=phase3.tfplan
+          replace_args=()
+          if [[ "${{ inputs.replace_platform_flags }}" == "true" ]]; then
+            if [[ "${{ inputs.stack }}" != "control-plane" ]]; then
+              echo "::error::replace_platform_flags applies only to the control-plane stack"
+              exit 1
+            fi
+            # Routine plans ignore the flag item so an apply cannot undo the
+            # kill switch; this explicit, reviewed replacement is the only way
+            # Terraform rewrites rin_enabled and static_mode.
+            replace_args=(-replace='aws_dynamodb_table_item.platform_config[0]')
+          fi
+          terraform plan -input=false -no-color "${replace_args[@]}" -out=phase3.tfplan
           terraform show -no-color phase3.tfplan > phase3.tfplan.txt
           sha256sum phase3.tfplan > phase3.tfplan.sha256
 

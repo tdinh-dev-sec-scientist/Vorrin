@@ -718,3 +718,19 @@ def test_scan_state_machine_has_no_unreachable_or_missing_states(stage2):
             frontier.append(target)
 
     assert reachable == set(states), f"unreachable: {sorted(set(states) - reachable)}"
+
+
+def test_platform_flags_change_only_through_an_explicit_reviewed_replacement():
+    workflow = (ROOT / ".github/workflows/phase3-terraform.yml").read_text(encoding="utf-8")
+    stage3 = (ROOT / "infra/phase3/control-plane/stage3.tf").read_text(encoding="utf-8")
+
+    # Routine applies keep whatever the kill switch wrote.
+    assert re.search(
+        r'resource "aws_dynamodb_table_item" "platform_config".*?ignore_changes = \[item\]', stage3, re.S
+    )
+    # The workflow can replace exactly that item, for control-plane only, opt-in.
+    assert "replace_platform_flags:" in workflow
+    assert re.search(r"replace_platform_flags:\s*\n(?:\s+.*\n)*?\s+default: false", workflow)
+    assert "replace_args=(-replace='aws_dynamodb_table_item.platform_config[0]')" in workflow
+    assert 'if [[ "${{ inputs.stack }}" != "control-plane" ]]; then' in workflow
+    assert 'terraform plan -input=false -no-color "${replace_args[@]}" -out=phase3.tfplan' in workflow
