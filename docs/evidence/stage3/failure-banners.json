@@ -1,0 +1,16 @@
+{
+  "rendered_states": {
+    "api_unavailable": true,
+    "failed_scan": true,
+    "kill_switch_static_mode": true,
+    "partial_scan": true,
+    "publication_blocked": true,
+    "rin_over_budget": true,
+    "rin_unavailable": true,
+    "stale_data": true
+  },
+  "reviewed_at": "2026-11-08T10:05:32-05:00",
+  "reviewed_by": "Truong Dinh",
+  "schema_version": 1,
+  "test_suite_sha256": "ad9ba4faa25f3c15900dfa1a3e0b8cbb18bba78991cd6a2f6d654e3beee3ec0f"
+}

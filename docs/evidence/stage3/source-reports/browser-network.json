@@ -1,0 +1,59 @@
+{
+  "approved_origins": [
+    "https://vorrin-console-7k2p.auth.us-east-1.amazoncognito.com",
+    "https://vorrin.truongdinh.dev"
+  ],
+  "pages": [
+    "dashboard",
+    "finding",
+    "rin"
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "type": "document",
+      "url": "https://vorrin.truongdinh.dev/"
+    },
+    {
+      "method": "GET",
+      "type": "stylesheet",
+      "url": "https://vorrin.truongdinh.dev/console.css"
+    },
+    {
+      "method": "GET",
+      "type": "script",
+      "url": "https://vorrin.truongdinh.dev/status.js"
+    },
+    {
+      "method": "GET",
+      "type": "script",
+      "url": "https://vorrin.truongdinh.dev/auth.js"
+    },
+    {
+      "method": "GET",
+      "type": "script",
+      "url": "https://vorrin.truongdinh.dev/knowledge.js"
+    },
+    {
+      "method": "GET",
+      "type": "script",
+      "url": "https://vorrin.truongdinh.dev/console.js"
+    },
+    {
+      "method": "GET",
+      "type": "fetch",
+      "url": "https://vorrin.truongdinh.dev/auth-config.json"
+    },
+    {
+      "method": "GET",
+      "type": "fetch",
+      "url": "https://vorrin.truongdinh.dev/api/latest"
+    },
+    {
+      "method": "POST",
+      "type": "fetch",
+      "url": "https://vorrin.truongdinh.dev/api/rin"
+    }
+  ],
+  "schema_version": 1
+}

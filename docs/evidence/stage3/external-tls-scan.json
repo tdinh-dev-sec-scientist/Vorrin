@@ -1,0 +1,11 @@
+{
+  "provider": "Mozilla HTTP Observatory API v2 (headers); curl TLS protocol probe from the owner's network",
+  "reviewed_at": "2026-11-08T10:05:32-05:00",
+  "reviewed_by": "Truong Dinh",
+  "scanned_at": "2026-11-08T09:28:32-05:00",
+  "schema_version": 1,
+  "security_headers_result": "pass",
+  "source_report_evidence_path": "stage3/source-reports/external-tls.json",
+  "source_report_sha256": "e7a4aa6c43e99206a94b47142d03258fece7a175a05788db65ec4e5127e80bff",
+  "tls_result": "pass"
+}

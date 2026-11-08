@@ -203,7 +203,7 @@ Terraform refuses to enable it otherwise.
 | --- | --- | --- |
 | 1 | Scheduled scans: EventBridge Scheduler every six hours, Step Functions, a cosign-signed Fargate scan image, a read-only cross-account role, private snapshots, drift history | Live; acceptance passed (two consecutive scheduled scans with reviewed drift) |
 | 2 | Redacted results and the public read-only API | Live; acceptance passed (redaction cases, publisher-failure atomicity, API methods) |
-| 3 | Invite-only console with Cognito sign-in (MFA, PKCE), and Rin | Console live behind Cognito; Rin in fixture mode; acceptance evidence pending |
+| 3 | Invite-only console with Cognito sign-in (MFA, PKCE), and Rin | **Passed 2026-11-08.** Console at a custom domain (TLS 1.2+ only); Rin on Claude Haiku via Amazon Bedrock behind a published Guardrail; evidence in [docs/evidence/stage3](docs/evidence/stage3/README.md) |
 | 4 | Budget cutoff, kill switch, and load tests | Waiting on Stage 3 |
 
 Deployments run through GitHub OIDC roles pinned to protected environments,
