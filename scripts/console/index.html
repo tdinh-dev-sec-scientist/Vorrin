@@ -37,9 +37,9 @@
 
   <div class="app-frame" id="app-frame">
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
-      <a class="brand" href="../" aria-label="Vorrin Cloud Security home">
+      <a class="brand" href="../" aria-label="Vorrin Cloud Security">
         <span class="brand-mark"><svg class="icon"><use href="#icon-vorrin"></use></svg></span>
-        <span class="brand-copy"><strong>Vorrin</strong><small>Cloud Security</small></span>
+        <span class="brand-copy"><strong>Vorrin</strong> <small>Cloud Security</small></span>
       </a>
 
       <div class="workspace-label">WORKSPACE</div>
@@ -47,7 +47,7 @@
         <button class="nav-item is-active" data-view="overview" aria-current="page" aria-label="Overview" title="Overview"><svg class="icon"><use href="#icon-overview"></use></svg><span>Overview</span></button>
         <button class="nav-item" data-view="aws-accounts" aria-label="AWS Accounts" title="AWS Accounts"><svg class="icon"><use href="#icon-cloud"></use></svg><span>AWS Accounts</span></button>
         <button class="nav-item" data-view="security-scans" aria-label="Security Scans" title="Security Scans"><svg class="icon"><use href="#icon-scan"></use></svg><span>Security Scans</span></button>
-        <button class="nav-item" data-view="findings" aria-label="Findings" title="Findings"><svg class="icon"><use href="#icon-findings"></use></svg><span>Findings</span><span class="nav-count" id="nav-finding-count">—</span></button>
+        <button class="nav-item" data-view="findings" aria-label="Findings" title="Findings"><svg class="icon"><use href="#icon-findings"></use></svg><span>Findings</span><span class="nav-count" id="nav-finding-count" data-count="—" aria-hidden="true"></span></button>
         <button class="nav-item" data-view="drift-history" aria-label="Drift History" title="Drift History"><svg class="icon"><use href="#icon-history"></use></svg><span>Drift History</span></button>
       </nav>
 
@@ -65,20 +65,20 @@
 
       <div class="workspace-label nav-section-label">INTELLIGENCE</div>
       <nav class="nav-group" aria-label="Intelligence">
-        <button class="nav-item" data-view="ai-analyst" aria-label="AI Analyst" title="AI Analyst"><svg class="icon"><use href="#icon-brain"></use></svg><span>AI Analyst</span><span class="nav-beta">Optional</span></button>
+        <button class="nav-item" data-view="ai-analyst" aria-label="AI Analyst" title="AI Analyst"><svg class="icon"><use href="#icon-brain"></use></svg><span>AI Analyst</span><span class="nav-beta" data-text="Optional" aria-hidden="true"></span></button>
       </nav>
 
       <div class="sidebar-spacer"></div>
       <div class="workspace-label nav-section-label">ADMINISTRATION</div>
       <nav class="nav-group" aria-label="Administration">
         <button class="nav-item" data-view="settings" aria-label="Settings" title="Settings"><svg class="icon"><use href="#icon-settings"></use></svg><span>Settings</span></button>
-        <button class="nav-item" data-view="security-limits" aria-label="Security &amp; limitations" title="Security &amp; limitations"><svg class="icon"><use href="#icon-lock"></use></svg><span>Security &amp; limits</span></button>
+        <button class="nav-item" data-view="security-limits" aria-label="Security &amp; limits" title="Security &amp; limitations"><svg class="icon"><use href="#icon-lock"></use></svg><span>Security &amp; limits</span></button>
       </nav>
 
       <div class="sidebar-status">
         <span class="status-mark"><svg class="icon"><use href="#icon-lock"></use></svg></span>
         <span><strong>Read-only replay</strong><small>No AWS connection</small></span>
-        <span class="status-dot" aria-label="Offline"></span>
+        <span class="status-dot" role="img" aria-label="Offline"></span>
       </div>
     </aside>
 

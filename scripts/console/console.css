@@ -36,10 +36,10 @@
   --code-bg: #1c1f22;
   --chart-track: #484c50;
   --header-bg: rgba(var(--page-rgb), .96);
-  --critical-rgb: 239, 83, 80;
+  --critical-rgb: 255, 123, 119;
   --success-rgb: 52, 199, 138;
   --error-rgb: 218, 116, 128;
-  --critical: #ef5350;
+  --critical: #ff7b77;
   --high: #f59e0b;
   --medium: #eabf52;
   --low: #60a5fa;
@@ -189,6 +189,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .nav-item.is-active .icon { color: var(--accent); }
 .nav-count, .nav-beta { flex: 0 0 auto; padding: 2px 6px; color: var(--text-muted); border: 1px solid rgba(var(--neutral-rgb), .2); border-radius: 99px; background: rgba(var(--neutral-rgb), .08); font-size: 12px; line-height: 1.35; }
 .nav-beta { color: var(--link); border-color: rgba(var(--accent-rgb), .2); background: rgba(var(--accent-rgb), .08); }
+/* Badge text is generated, so a nav button's accessible name stays its label (WCAG 2.5.3). */
+.nav-count::after { content: attr(data-count); }
+.nav-beta::after { content: attr(data-text); }
 .sidebar-spacer { min-height: 16px; flex: 1; }
 .sidebar-status { display: flex; align-items: center; gap: 10px; min-height: 56px; margin-top: 18px; padding: 8px 10px; border: 1px solid rgba(var(--neutral-rgb), .13); border-radius: 9px; background: rgba(var(--foreground-rgb), .025); }
 .status-mark { display: grid; place-items: center; width: 29px; height: 29px; color: var(--accent); border: 1px solid rgba(var(--neutral-rgb), .15); border-radius: 8px; background: rgba(var(--neutral-rgb), .07); }
