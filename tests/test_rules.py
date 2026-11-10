@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from auditor.rules.cloudtrail_rules import evaluate
 
-
 CONFIG = {
     "cloudtrail": {
         "require_trail": True,
