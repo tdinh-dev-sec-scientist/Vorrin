@@ -52,7 +52,7 @@ test("Rin knowledge explains input and output Guardrail checks with fixture fall
   assert.equal(answer.id, "rin-privacy");
   assert.match(answer.text, /checks the bounded redacted input before the external model/i);
   assert.match(answer.text, /validates the answer before it reaches the visitor/i);
-  assert.match(answer.text, /Guardrail error selects the fixture fallback/i);
+  assert.match(answer.text, /fixture fallback, including when the Guardrail itself errors/i);
   assert.ok(answer.citations.includes("docs/phase3-bootstrap.md · Rin Bedrock Guardrail"));
 });
 
