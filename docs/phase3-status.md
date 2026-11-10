@@ -1,9 +1,11 @@
 # Phase 3 status
 
-**Local implementation for all four stages is prepared. No live stage gate has passed.**
-The stage gates in `docs/evidence/phase3-stage-acceptance.json` are the source
-of truth. Local tests and Terraform code do not count as live
-acceptance.
+**The checked-in acceptance manifest records Stages 1–3 as passed and Stage 4 as pending.**
+The manifest is the source of truth for repository status and binds the
+owner-reviewed evidence files by SHA-256. The public GitHub Pages site remains
+a static Moto/fixture replay; it is not the separate invite-only Phase 3
+console. This page reports repository evidence and does not independently
+query AWS.
 
 Terraform 1.9.8 `fmt -check -recursive infra/phase3` passed, and
 `terraform validate` passed in the `org`, `demo-bootstrap`, `demo-account`,
@@ -25,56 +27,44 @@ a live AWS account.
 
 | Stage | Local implementation | Live acceptance |
 | --- | --- | --- |
-| Stage 1 — Demo account and scans | OU/SCP, guarded low-cost demo resources, read-only ECS Fargate scanner, scheduler, private snapshots, and drift history are implemented. | **Not passed.** No demo account or role has been provisioned, no scheduled scan has run, and the new/resolved drift evidence is absent. |
-| Stage 2 — Redaction, publication, and API | Versioned public schema, allowlist redaction, private-to-public publisher, last-good behavior, and GET/HEAD API are implemented and locally tested. | **Not passed.** Stage 1 has not passed. An owner-recorded AWS Pricing Calculator estimate and a monthly cap covering that estimate are also required before enablement. |
-| Stage 3 — Website and Rin | Sanitized bundle, same-origin API client, failure banners, fixture fallback, external-provider Rin path, input/output Bedrock Guardrail checks, session/daily quotas, CloudFront/TLS Terraform, and invite-only access (Cognito sign-in with MFA and PKCE, an authorizer on every API method, per-user quotas; WAF in public mode) are implemented. | **Passed 2026-11-08** (reviewed by Truong Dinh): HTTPS and headers on the custom domain with TLS 1.0/1.1 refused, Rin evaluation 11/11 on Claude Haiku via Bedrock, quota fallbacks, eight failure banners, Guardrail version 3 (26/26), and Bedrock logging review. Live Rin enabled for invited users on 2026-11-08 (Claude Haiku 4.5 on Amazon Bedrock, Guardrail version 3, $5/month provider budget, 19 questions/day); the budget kill switch, alerts, and monthly AWS budget are deployed. |
-| Stage 4 — Harden, document, and launch | AWS budget alerts, a separate daily-limit alert, atomic static-mode kill switch, and operational documentation are implemented. | **Not passed.** No deployment, actual cost record, external security scan, load test, or end-to-end kill-switch recovery measurement exists. |
+| Stage 1 — Demo account and scans | OU/SCP, guarded low-cost demo resources, read-only ECS Fargate scanner, scheduler, private snapshots, and drift history are implemented. | **Passed 2026-11-07** per the acceptance manifest: two scheduled scans, reviewed drift, and read-only-role evidence. |
+| Stage 2 — Redaction, publication, and API | Versioned public schema, allowlist redaction, private-to-public publisher, last-good behavior, and GET/HEAD API are implemented and locally tested. | **Passed 2026-11-07** per the acceptance manifest: redaction, publisher-failure atomicity, and public API method evidence. |
+| Stage 3 — Website and Rin | Sanitized bundle, same-origin API client, failure banners, fixture fallback, external-provider Rin path, input/output Bedrock Guardrail checks, session/daily quotas, CloudFront/TLS Terraform, and invite-only access (Cognito sign-in with MFA and PKCE, an authorizer on every API method, per-user quotas; WAF in public mode) are implemented. | **Passed 2026-11-08** per the acceptance manifest and linked evidence: HTTPS and headers, Rin evaluation, quota fallbacks, failure banners, Guardrail version 3 (26/26), and Bedrock logging review. Live Rin enabled for invited users on 2026-11-08 (Claude Haiku 4.5 on Amazon Bedrock, Guardrail version 3, $5/month provider budget, 19 questions/day); the budget kill switch, alerts, and monthly AWS budget are deployed. |
+| Stage 4 — Harden, document, and launch | AWS budget alerts, a separate daily-limit alert, atomic static-mode kill switch, and operational documentation are implemented. | **Pending.** Budget-cutoff, kill-switch recovery, actual monthly cost, launch, external-security, and load/resilience evidence remain outstanding. |
 
-Later-stage code was prepared before the earlier live stage gates were met. This
-is an implementation-sequencing deviation; it is not stage acceptance. The
-checked-in acceptance manifest is pending for every stage, and both CI and
-Terraform preconditions block later-stage enablement until reviewed evidence
-files are present. No Phase 3 AWS resources have been created. The configured
-`audit-readonly` profile can obtain an identity but AWS denies `iam:ListRoles`;
-the `default` profile resolves to account root and was not used for policy
-capture. No actual AWS role policies were captured. The version-3 role manifest
-keeps the org and control-plane plan/apply roles separate and pending.
-Stage 3's versioned acceptance manifest explicitly requires reviewed published
-Guardrail-policy and Bedrock invocation-logging records at
-`stage3/guardrail-policy-review.json` and
-`stage3/bedrock-logging-review.json`, plus the four source exports whose exact
-bytes those records hash: the Guardrail configuration, adversarial evaluation,
-Bedrock logging settings, and external-provider logging settings. The gate
-enforces a 30-day maximum for prompt-content retention. The source paths are
-`stage3/guardrail-configuration.json`, `stage3/guardrail-evaluation.json`,
-`stage3/bedrock-logging-settings.json`, and
-`stage3/external-provider-logging-settings.json`. These actual captures are
-absent, so Stage 3 remains pending.
+Later-stage code was prepared before earlier live gates passed; this sequencing
+deviation is documented. The checked-in manifest records Stages 1 and 2 passed
+on 2026-11-07 and Stage 3 passed on 2026-11-08, with Stage 4 pending. The
+manifest binds reviewed evidence files by SHA-256; the listed Stage 1–3 files
+are checked into docs/evidence. These are repository owner-reviewed records;
+this page does not independently query the AWS account or verify external
+control-plane settings. The configured audit-readonly profile can obtain an
+identity but AWS denies iam:ListRoles; the default profile resolves to account
+root and was not used for policy capture. Effective organization and
+control-plane role policies remain owner-managed and unverified here.
 
 The version-3 stage gate requires named evidence artifacts and a SHA-256 digest
 for every reviewed file. A file changed after review blocks the gate. Stage 3
 also validates that its review summaries match the captured Guardrail and
-logging records. This hardens the evidence gate; it does not replace live
-acceptance activity or mark a stage passed.
+logging records. The manifest records Stage 3 passed; Stage 4 remains pending
+until its own budget, recovery, cost, and launch evidence is reviewed.
 
 ## Confirmed assumptions and permission boundary
 
 The public snapshot shape is versioned as 2.0.0 because evidence summaries and
 affected-service status are required fields. The repository contains no 1.0.0
-public snapshot. No profile with access to the Phase 3 public-results store is
-configured, so remote objects remain unverified; before launch, publish a
-2.0.0 snapshot and verify that no older object can remain behind the latest
-pointer.
+public snapshot, and the Stage 2 acceptance manifest records publisher and API
+evidence. This repository does not provide credentials or direct access to the
+live public-results store; before a future schema migration, independently
+verify current and prior objects and the latest pointer.
 
 - **A1 is false:** Phase 2 has local drift history and a fixture-backed static
   site, not an S3 snapshot store or DynamoDB index. Phase 3 implements those
   missing components.
-- **A2 is false:** Rin model generation follows the plan's external-provider
-  contingency. An owner-managed Bedrock Guardrail independently checks the
-  redacted input and validated output. Rin stays disabled until the owner
-  selects a provider/model, configures its secret and rotation process,
-  publishes and reviews the Guardrail, and supplies provider rates and a
-  separate provider budget.
+- **Rin status:** The acceptance manifest records Stage 3 passed on 2026-11-08.
+  Its evidence describes invite-only live Rin using Claude Haiku 4.5 on Amazon
+  Bedrock with a published Guardrail and a separate provider budget. The public
+  GitHub Pages assistant remains fixture-only; no model is connected there.
 - The scan worker assumes only the named target read-only role. The public API
   reads sanitized scan results and its feature flag, and writes its own logs.
   Rin reads sanitized scan results, its feature flag and provider secret,
@@ -85,30 +75,26 @@ pointer.
   The Organizations and control-plane Terraform role policies are owner-created
   prerequisites and have not been independently verified; see the bootstrap
   guide before using them.
-- Stage flags, the six-hour schedule, and live Rin default to disabled. See
-  [the cost record](costs.md) and [the operations runbook](operations-runbook.md)
-  before any live plan.
+- Terraform defaults for stage flags, the six-hour schedule, and live Rin stay
+  disabled for new environments. The accepted deployment recorded in the
+  manifest has its own configured values. See [the cost record](costs.md) and
+  [the operations runbook](operations-runbook.md) before any live plan.
 
-## Inputs and evidence still required
+## Remaining Stage 4 evidence and deployment caveats
 
-1. Designated AWS Organizations management/control-plane accounts and the
-   dedicated demo account, plus the pre-scoped GitHub OIDC providers and
-   plan/apply roles for those accounts. The one-time identity setup is
-   documented in [the OIDC bootstrap guide](phase3-bootstrap.md). Do not put
-   account-specific values in tracked files.
-2. An owner-generated AWS Pricing Calculator estimate, its evidence reference,
-   and a monthly AWS cap at least as high as the estimate. An encrypted,
-   access-controlled Terraform state location must also be selected before
-   applying.
-3. A budget-alert email, external provider/model, current provider input and
-   output rates, separate provider monthly cap, managed provider secret, and
-   owner-managed published Bedrock Guardrail with reviewed input/output
-   policies and invocation-logging settings. Provider values are not invented
-   here.
-4. After deployment: two scheduled scans, reviewed Terraform drift evidence,
-   read-only permission evidence, public redaction/failure evidence, TLS and
-   header results, browser/accessibility checks, load/resilience results,
-   kill-switch/recovery timing, and actual AWS/provider spend.
+1. Stage 4 remains pending until budget cutoff, kill-switch recovery, actual
+   monthly AWS cost, launch, external security scan, and load/resilience
+   evidence are reviewed.
+2. The recorded cost estimate is $2.93/month, while the documented owner cap
+   is $10/month. This estimate and alerting configuration do not establish a
+   hard $5/month ceiling; confirm a cap at or below $5 before enabling
+   additional billable work.
+3. AWS Organizations and control-plane role policies, the selected Terraform
+   state bucket/table, and their effective permissions are owner-managed
+   prerequisites. Their deployed configuration is not independently captured
+   by this repository status page.
+4. For future provisioning, use the bootstrap guide and keep account-specific
+   values out of tracked files.
 
-The default CloudFront domain is the planned choice when no custom domain is
-provided. That does not remove the other stage gates.
+The accepted Stage 3 evidence uses a custom domain. The CloudFront default
+domain remains the fallback for future environments without one.
