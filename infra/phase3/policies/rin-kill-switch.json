@@ -14,6 +14,57 @@
           "dynamodb:Attributes": ["pk", "sk", "rin_enabled", "static_mode"]
         }
       }
+    },
+    {
+      "Sid": "DisableOnlyThePhase3ScanSchedule",
+      "Effect": "Allow",
+      "Action": ["scheduler:GetSchedule", "scheduler:UpdateSchedule"],
+      "Resource": "${scan_schedule_arn}"
+    },
+    {
+      "Sid": "ListOnlyThePhase3ScanExecutions",
+      "Effect": "Allow",
+      "Action": "states:ListExecutions",
+      "Resource": "${scan_state_machine_arn}"
+    },
+    {
+      "Sid": "StopOnlyThePhase3ScanExecutions",
+      "Effect": "Allow",
+      "Action": "states:StopExecution",
+      "Resource": "${scan_execution_arn}"
+    },
+    {
+      "Sid": "ListTasksOnlyInPhase3ScanCluster",
+      "Effect": "Allow",
+      "Action": "ecs:ListTasks",
+      "Resource": "*",
+      "Condition": {
+        "ArnEquals": {
+          "ecs:cluster": "${scan_cluster_arn}"
+        }
+      }
+    },
+    {
+      "Sid": "StopTasksOnlyInPhase3ScanCluster",
+      "Effect": "Allow",
+      "Action": "ecs:StopTask",
+      "Resource": "${scan_task_arn_pattern}",
+      "Condition": {
+        "ArnEquals": {
+          "ecs:cluster": "${scan_cluster_arn}"
+        }
+      }
+    },
+    {
+      "Sid": "PassOnlyThePhase3SchedulerRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "${scheduler_role_arn}",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "scheduler.amazonaws.com"
+        }
+      }
     }
   ]
 }

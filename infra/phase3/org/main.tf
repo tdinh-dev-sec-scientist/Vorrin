@@ -1,4 +1,5 @@
 data "aws_partition" "current" {}
+data "aws_organizations_organization" "current" {}
 
 locals {
   demo_account_id          = aws_organizations_account.demo.id
@@ -54,13 +55,27 @@ resource "aws_organizations_policy" "demo_guardrails" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "DenyBucketPolicyAndAclExposure"
-        Effect = "Deny"
-        Action = ["s3:PutBucketPolicy", "s3:PutBucketAcl", "s3:PutObjectAcl"]
-        NotResource = [
-          local.trail_bucket_arn,
-          "${local.trail_bucket_arn}/*"
-        ]
+        Sid         = "DenyPublicBucketPolicyChangesOutsideCloudTrailBucket"
+        Effect      = "Deny"
+        Action      = "s3:PutBucketPolicy"
+        NotResource = [local.trail_bucket_arn]
+      },
+      {
+        Sid      = "DenyCloudTrailBucketPolicyChangesExceptTerraformApplyRole"
+        Effect   = "Deny"
+        Action   = "s3:PutBucketPolicy"
+        Resource = local.trail_bucket_arn
+        Condition = {
+          ArnNotEquals = {
+            "aws:PrincipalArn" = local.terraform_apply_role_arn
+          }
+        }
+      },
+      {
+        Sid      = "DenyBucketACLChangesIncludingCloudTrail"
+        Effect   = "Deny"
+        Action   = ["s3:PutBucketAcl", "s3:PutObjectAcl"]
+        Resource = "*"
       },
       {
         Sid    = "DenyUnapprovedCostlyResources"
@@ -182,6 +197,37 @@ resource "aws_organizations_policy" "demo_guardrails" {
   }
 }
 
+resource "aws_organizations_policy" "demo_s3_public_access" {
+  name        = "GuardrailsPhase3DemoS3PublicAccessBlock"
+  description = "Enforces all four Amazon S3 Block Public Access settings for the Phase 3 demo OU."
+  type        = "S3_POLICY"
+  content = jsonencode({
+    s3_attributes = {
+      public_access_block_configuration = {
+        "@@assign" = "all"
+      }
+    }
+  })
+
+  lifecycle {
+    prevent_destroy = true
+
+    precondition {
+      condition     = contains(data.aws_organizations_organization.current.enabled_policy_types, "S3_POLICY")
+      error_message = "Enable the S3_POLICY type in the AWS Organization before applying the Phase 3 demo guardrails."
+    }
+  }
+}
+
+resource "aws_organizations_policy_attachment" "demo_s3_public_access" {
+  policy_id = aws_organizations_policy.demo_s3_public_access.id
+  target_id = aws_organizations_organizational_unit.demo.id
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "aws_organizations_policy_attachment" "demo_guardrails" {
   policy_id = aws_organizations_policy.demo_guardrails.id
   target_id = aws_organizations_organizational_unit.demo.id
@@ -190,3 +236,4 @@ resource "aws_organizations_policy_attachment" "demo_guardrails" {
     prevent_destroy = true
   }
 }
+

@@ -4,8 +4,8 @@ Reviewed by Truong Dinh on 2026-11-07. This is the estimate behind the
 `PHASE3_AWS_ESTIMATE_MONTHLY_USD` and `PHASE3_AWS_ESTIMATE_REFERENCE`
 variables that Stage 2 requires.
 
-**Estimate: $2.93 per month, recorded as $3. Owner cap
-(`PHASE3_MONTHLY_BUDGET_USD`): $10.**
+**Estimate: $2.93 per month, recorded as $3. Monthly AWS budget ceiling
+(`PHASE3_MONTHLY_BUDGET_USD`): $5.00. Circuit-breaker threshold: $4.50 actual or forecasted spend.**
 
 ## Method
 
@@ -38,4 +38,13 @@ which carries no trail charge; its S3 log storage is within the S3 line.
 AWS WAF is off in `invite_only` mode, and Rin's external model provider is
 budgeted separately (`PHASE3_PROVIDER_MONTHLY_BUDGET_USD`).
 
-Stage 4 records actual spend from Cost Explorer against this estimate.
+The control-plane AWS Budgets resource is fixed at $5.00/month. When actual or
+forecasted spend reaches or exceeds $4.50, AWS Budgets invokes the Phase 3 Lambda
+breaker through SNS. It sets Rin to static mode, disables the six-hour scan schedule, stops
+running Step Functions scans, and stops Fargate scan tasks.
+
+AWS Budgets data is delayed and the forecast alert needs about five weeks of
+usage history. The $4.50 breaker and $5.00 budget are operating thresholds, not
+a guarantee that AWS charges cannot exceed $5.00; usage already incurred or
+reported late can still appear on a later bill. Stage 4 records actual spend
+from Cost Explorer against this estimate.

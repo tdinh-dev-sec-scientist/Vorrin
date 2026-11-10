@@ -131,7 +131,16 @@ def test_quota_and_kill_switch_write_roles_cannot_touch_other_tables():
 
     assert _actions(quota) == {"dynamodb:UpdateItem"}
     assert quota["Statement"][0]["Resource"] == "${quota_table_arn}"
-    assert _actions(kill_switch) == {"dynamodb:UpdateItem"}
+    assert _actions(kill_switch) == {
+        "dynamodb:UpdateItem",
+        "scheduler:GetSchedule",
+        "scheduler:UpdateSchedule",
+        "states:ListExecutions",
+        "states:StopExecution",
+        "ecs:ListTasks",
+        "ecs:StopTask",
+        "iam:PassRole",
+    }
     assert kill_switch["Statement"][0]["Resource"] == "${feature_table_arn}"
     assert kill_switch["Statement"][0]["Condition"]["ForAllValues:StringEquals"]["dynamodb:LeadingKeys"] == [
         "PLATFORM"
@@ -657,17 +666,48 @@ def test_cloudfront_behaviors_use_method_sets_cloudfront_accepts():
     assert "POST" in method_sets[1], "Rin needs POST through the /api/* behavior"
 
 
-def test_demo_terraform_apply_role_uses_real_iam_action_names():
+def test_demo_terraform_apply_role_cannot_change_public_access_block_settings():
     bootstrap = (ROOT / "infra/phase3/demo-bootstrap/main.tf").read_text(encoding="utf-8")
+    demo_account = (ROOT / "infra/phase3/demo-account/main.tf").read_text(encoding="utf-8")
 
-    # PutPublicAccessBlock is the S3 API name; IAM authorizes it as PutBucketPublicAccessBlock.
-    assert '"s3:PutPublicAccessBlock"' not in bootstrap
-    assert '"s3:PutBucketPublicAccessBlock"' in bootstrap
+    apply_role_policy = bootstrap.split('resource "aws_iam_role_policy" "terraform_apply"', 1)[1]
+    deny = apply_role_policy.split('Sid      = "DenyPublicAccessBlockMutations"', 1)[1].split("},", 1)[0]
+    assert '"s3:PutAccountPublicAccessBlock"' in deny
+    assert '"s3:PutBucketPublicAccessBlock"' in deny
+    assert 'Action   = ["s3:GetAccountPublicAccessBlock", "s3:PutAccountPublicAccessBlock"]' not in apply_role_policy
+    secure_buckets = apply_role_policy.split('Sid    = "CreateAndSecureNamedDemoBuckets"', 1)[1].split("},", 1)[0]
+    assert 's3:PutBucketPublicAccessBlock' not in secure_buckets
+    assert '"s3:PutBucketPolicy"' not in secure_buckets
+    assert "Resource = local.demo_bucket_arns" in secure_buckets
+    cloudtrail_policy = apply_role_policy.split('Sid      = "ManageOnlyCloudTrailBucketPolicy"', 1)[1].split("},", 1)[0]
+    assert '"s3:PutBucketPolicy"' in cloudtrail_policy
+    assert "Resource = local.trail_bucket_arn" in cloudtrail_policy
+    assert 'resource "aws_s3_bucket_public_access_block"' not in demo_account
+    assert "destroy = false" in demo_account
     # Default tags make CreateTrail and CreateRole need tag and inline-policy reads.
     assert '"cloudtrail:AddTags"' in bootstrap
     assert '"iam:ListRolePolicies"' in bootstrap
     # The provider reads a trail back with DescribeTrails, which has no resource ARN.
     assert '"cloudtrail:DescribeTrails"' in bootstrap
+
+
+def test_organizations_ou_enforces_all_four_s3_public_access_settings():
+    org = (ROOT / "infra/phase3/org/main.tf").read_text(encoding="utf-8")
+    apply_policy = json.loads(
+        (ROOT / "infra/phase3/policies/org-terraform-apply.json").read_text(encoding="utf-8")
+    )
+
+    assert 'type        = "S3_POLICY"' in org
+    assert '"@@assign" = "all"' in org
+    assert "enabled_policy_types" in org and '"S3_POLICY"' in org
+    assert "DenyBucketACLChangesIncludingCloudTrail" in org
+    assert "DenyCloudTrailBucketPolicyChangesExceptTerraformApplyRole" in org
+    assert "local.terraform_apply_role_arn" in org
+    assert "local.trail_bucket_arn" in org
+    assert any(
+        statement.get("Condition", {}).get("StringEquals", {}).get("organizations:PolicyType") == "S3_POLICY"
+        for statement in apply_policy["Statement"]
+    )
 
 
 def _scan_workflow_states(text, start_marker, end_marker):
@@ -723,8 +763,12 @@ def test_scan_state_machine_has_no_unreachable_or_missing_states(stage2):
 def test_platform_flags_change_only_through_an_explicit_reviewed_replacement():
     workflow = (ROOT / ".github/workflows/phase3-terraform.yml").read_text(encoding="utf-8")
     stage3 = (ROOT / "infra/phase3/control-plane/stage3.tf").read_text(encoding="utf-8")
+    stage1 = (ROOT / "infra/phase3/control-plane/stage1.tf").read_text(encoding="utf-8")
 
     # Routine applies keep whatever the kill switch wrote.
+    assert re.search(
+        r'resource "aws_scheduler_schedule" "scan".*?ignore_changes = \[state\]', stage1, re.S
+    )
     assert re.search(
         r'resource "aws_dynamodb_table_item" "platform_config".*?ignore_changes = \[item\]', stage3, re.S
     )
@@ -732,5 +776,37 @@ def test_platform_flags_change_only_through_an_explicit_reviewed_replacement():
     assert "replace_platform_flags:" in workflow
     assert re.search(r"replace_platform_flags:\s*\n(?:\s+.*\n)*?\s+default: false", workflow)
     assert "replace_args=(-replace='aws_dynamodb_table_item.platform_config[0]')" in workflow
+    assert "replace_args+=(-replace='aws_scheduler_schedule.scan[0]')" in workflow
     assert 'if [[ "${{ inputs.stack }}" != "control-plane" ]]; then' in workflow
     assert 'terraform plan -input=false -no-color "${replace_args[@]}" -out=phase3.tfplan' in workflow
+
+
+def test_monthly_aws_budget_has_a_five_dollar_cap_and_four_fifty_cost_breaker():
+    variables = (ROOT / "infra/phase3/control-plane/variables.tf").read_text(encoding="utf-8")
+    workflow = (ROOT / ".github/workflows/phase3-terraform.yml").read_text(encoding="utf-8")
+    stage4 = (ROOT / "infra/phase3/control-plane/stage4.tf").read_text(encoding="utf-8")
+    lambda_code = (ROOT / "phase3/kill_switch.py").read_text(encoding="utf-8")
+
+    assert "default     = 5.0" in variables
+    assert "condition     = var.monthly_budget_usd == 5.0" in variables
+    assert "nullable    = false" in variables
+    assert "limit_amount = format(\"%.2f\", var.monthly_budget_usd)" in stage4
+    assert "TF_VAR_monthly_budget_usd: ${{ vars.PHASE3_MONTHLY_BUDGET_USD || '5.0' }}" in workflow
+    assert "budget_kill_threshold = 4.5" in stage4
+
+    notifications = re.findall(r"notification \{(.*?)\n  \}", stage4, re.S)
+    for notification_type in ("ACTUAL", "FORECASTED"):
+        matching = [
+            block for block in notifications
+            if f'notification_type          = "{notification_type}"' in block
+            and "threshold                  = local.budget_kill_threshold" in block
+            and 'threshold_type             = "ABSOLUTE_VALUE"' in block
+            and "subscriber_sns_topic_arns" in block
+        ]
+        assert any('comparison_operator        = "GREATER_THAN"' in block for block in matching)
+        assert any('comparison_operator        = "EQUAL_TO"' in block for block in matching)
+
+    assert 'resource "aws_sns_topic_subscription" "budget_kill"' in stage4
+    assert 'resource "aws_lambda_function" "kill_switch"' in stage4
+    for action in ("_disable_schedule(", "_stop_running_executions(", "_stop_running_tasks("):
+        assert action in lambda_code

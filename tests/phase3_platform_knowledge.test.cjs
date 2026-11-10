@@ -15,14 +15,14 @@ function answerPlatformQuestion(question) {
 
 test("platform questions use versioned, cited approved knowledge", () => {
   const answer = answerPlatformQuestion("What does this platform do?");
-  assert.equal(answer.version, "1.2.0");
+  assert.equal(answer.version, "1.3.0");
   assert.match(answer.text, /read-only/i);
   assert.ok(answer.citations.includes("README.md · Live deployment status"));
 });
 
 test("knowledge distinguishes the public fixture site from accepted live stages", () => {
   const answer = answerPlatformQuestion("Is the Phase 3 website live?");
-  assert.equal(answer.version, "1.2.0");
+  assert.equal(answer.version, "1.3.0");
   assert.match(answer.text, /public GitHub Pages site is a static Moto\/fixture replay/i);
   assert.match(answer.text, /Stages 1, 2, and 3 as passed/i);
   assert.match(answer.text, /Stage 4 remains pending/i);
@@ -66,7 +66,7 @@ test("approved knowledge covers architecture, IaC, controls, drift, and cost sta
     ["What file types can IaC scanning handle?", /Terraform.*Kubernetes/i, "docs/iac-scanning.md"],
     ["What CIS controls are mapped?", /11 of 14/i, "docs/cis-mapping.md"],
     ["How does drift handle an incomplete scan?", /UNKNOWN/i, "docs/fleet-scanning.md"],
-    ["What monthly budget is approved?", /recorded AWS estimate is \$2\.93 per month and the documented owner cap is \$10/i, "docs/evidence/aws-cost-estimate.md"],
+    ["What monthly budget is approved?", /recorded AWS estimate is \$2\.93 per month and the AWS budget is capped at \$5\.00/i, "docs/evidence/aws-cost-estimate.md"],
     ["How does budget enforcement work?", /Stage 4 remains pending its budget cutoff, kill-switch recovery, and actual-cost evidence/i, "docs/phase3-status.md"],
   ];
 

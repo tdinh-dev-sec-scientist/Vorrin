@@ -10,13 +10,36 @@ locals {
   trail_arn          = "arn:${data.aws_partition.current.partition}:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${local.trail_name}"
 }
 
-resource "aws_s3_account_public_access_block" "demo" {
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+# The Organizations S3_POLICY owns the effective all-four-settings baseline.
+# Keep any legacy bucket/account PAB values in AWS while removing Terraform's
+# permission-dependent write ownership; the bootstrap apply role cannot change them.
+removed {
+  from = aws_s3_account_public_access_block.demo
+  lifecycle {
+    destroy = false
+  }
 }
 
+removed {
+  from = aws_s3_bucket_public_access_block.demo_a
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = aws_s3_bucket_public_access_block.demo_b
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = aws_s3_bucket_public_access_block.cloudtrail
+  lifecycle {
+    destroy = false
+  }
+}
 resource "aws_iam_role" "target_readonly" {
   name                 = "AccountAccessAuditorReadOnly"
   permissions_boundary = aws_iam_policy.target_readonly.arn
@@ -52,6 +75,10 @@ resource "aws_iam_role_policy_attachment" "target_readonly" {
   policy_arn = aws_iam_policy.target_readonly.arn
 }
 
+#checkov:skip=CKV_AWS_53:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV_AWS_54:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV_AWS_55:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV_AWS_56:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 resource "aws_s3_bucket" "demo_a" {
   #checkov:skip=CKV_AWS_145:SSE-S3 keeps the disposable demo bucket encrypted without KMS request costs.
   #checkov:skip=CKV2_AWS_6:This resource intentionally models bucket-level drift; account-level blocking and the SCP prevent public exposure.
@@ -65,6 +92,11 @@ resource "aws_s3_bucket" "demo_a" {
   }
 }
 
+#checkov:skip=CKV_AWS_53:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV_AWS_54:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV_AWS_55:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV_AWS_56:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV2_AWS_6:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 resource "aws_s3_bucket" "demo_b" {
   #checkov:skip=CKV_AWS_145:SSE-S3 keeps the disposable demo bucket encrypted without KMS request costs.
   bucket        = local.demo_b_bucket_name
@@ -115,28 +147,14 @@ resource "aws_s3_bucket_ownership_controls" "demo_b" {
   rule { object_ownership = "BucketOwnerEnforced" }
 }
 
-# Intentional but non-exposing drift: account-level protection remains on,
-# and the SCP prevents public ACL/policy writes. Bucket A carries the two
-# disabled controls. The Stage 1 drift review moved them to bucket B and back,
-# so a scheduled scan records one finding as new and the other as resolved.
-resource "aws_s3_bucket_public_access_block" "demo_a" {
-  bucket                  = aws_s3_bucket.demo_a.id
-  block_public_acls       = true
-  ignore_public_acls      = true
-  block_public_policy     = false
-  restrict_public_buckets = false
-  depends_on              = [aws_s3_account_public_access_block.demo]
-}
-
-resource "aws_s3_bucket_public_access_block" "demo_b" {
-  bucket                  = aws_s3_bucket.demo_b.id
-  block_public_acls       = true
-  ignore_public_acls      = true
-  block_public_policy     = true
-  restrict_public_buckets = true
-  depends_on              = [aws_s3_account_public_access_block.demo]
-}
-
+# The Organizations S3_POLICY enforces all four effective public-access settings.
+# Terraform intentionally does not grant the demo apply role permission to change
+# account or bucket PAB values; legacy bucket settings remain unmanaged.
+#checkov:skip=CKV_AWS_53:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV_AWS_54:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV_AWS_55:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV_AWS_56:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
+#checkov:skip=CKV2_AWS_6:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 resource "aws_s3_bucket" "cloudtrail" {
   #checkov:skip=CKV_AWS_145:CloudTrail logs use SSE-S3 at rest; a customer-managed KMS key adds cost without a plan requirement.
   bucket        = local.trail_bucket_name
@@ -146,14 +164,6 @@ resource "aws_s3_bucket" "cloudtrail" {
   lifecycle {
     prevent_destroy = true
   }
-}
-
-resource "aws_s3_bucket_public_access_block" "cloudtrail" {
-  bucket                  = aws_s3_bucket.cloudtrail.id
-  block_public_acls       = true
-  ignore_public_acls      = true
-  block_public_policy     = true
-  restrict_public_buckets = true
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "cloudtrail" {
@@ -215,7 +225,6 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
       }
     ]
   })
-  depends_on = [aws_s3_bucket_public_access_block.cloudtrail]
 }
 
 resource "aws_cloudtrail" "demo" {
@@ -235,3 +244,4 @@ resource "aws_cloudtrail" "demo" {
     prevent_destroy = true
   }
 }
+

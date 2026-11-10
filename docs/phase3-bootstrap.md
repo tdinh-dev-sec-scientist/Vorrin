@@ -74,17 +74,22 @@ To adopt a demo account that already exists, set the repository variable
 `PHASE3_DEMO_ACCOUNT_EMAIL` secret match it exactly. The org stack then imports
 the account instead of creating a second one.
 
-Service control policies are disabled in a new organization, and the org
-apply role deliberately cannot enable organization-wide policy types. Enable
-them once, as an administrator, before the first org apply; otherwise
-attaching the demo guardrail fails with `PolicyTypeNotEnabledException`:
+Service control policies and S3 policies must be enabled in a new organization.
+The org apply role deliberately cannot change organization-wide policy types.
+Enable both once, as an administrator, before the first org apply. The Terraform
+data-source precondition checks for `S3_POLICY` and explains the prerequisite if
+it is missing:
 
 ```sh
 aws organizations enable-policy-type --profile vorrin-admin --root-id <root-id> --policy-type SERVICE_CONTROL_POLICY
+aws organizations enable-policy-type --profile vorrin-admin --root-id <root-id> --policy-type S3_POLICY
 ```
 
-AWS attaches the built-in `FullAWSAccess` policy everywhere when SCPs are
-enabled, so no account loses access; only the demo OU receives the guardrail.
+AWS attaches the built-in `FullAWSAccess` SCP everywhere when SCPs are enabled.
+The Phase 3 OU also receives the S3 policy that enforces all four Block Public
+Access settings. The SCP permits only the `Phase3DemoTerraformApply` role to update the
+CloudTrail bucket policy; it denies bucket-policy changes elsewhere and all
+ACL writes. The Organizations S3 policy rejects public bucket policies.
 
 ## Demo-bootstrap roles in the demo account
 
@@ -340,9 +345,10 @@ success with other standard methods rejected. Stage 3 records required
 headers, a dated external TLS scan, browser-network and accessibility report
 digests for the dashboard/finding/Rin pages, passing Rin test categories,
 fixture responses at session/daily/monthly limits, and all failure banners.
-Stage 4 records the 50/80/100% budget alerts, kill-switch recovery, load tests
-at multiple traffic levels, actual AWS and provider costs against their
-separate budgets, and every final release criterion. Report digests must match
+Stage 4 records the $5.00 AWS budget, $4.50 actual/forecast breaker, schedule
+and workload shutdown, kill-switch recovery, load tests at multiple traffic
+levels, actual AWS and provider costs against their separate budgets, and every
+final release criterion. Report digests must match
 their corresponding retained source-report files. The pre-credential workflow
 also binds Stage 3 quota evidence to configured provider prices, token caps,
 monthly budget, and derived daily cap. Generic `checked: true` files do not

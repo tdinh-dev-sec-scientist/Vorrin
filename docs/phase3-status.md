@@ -29,8 +29,8 @@ a live AWS account.
 | --- | --- | --- |
 | Stage 1 — Demo account and scans | OU/SCP, guarded low-cost demo resources, read-only ECS Fargate scanner, scheduler, private snapshots, and drift history are implemented. | **Passed 2026-11-07** per the acceptance manifest: two scheduled scans, reviewed drift, and read-only-role evidence. |
 | Stage 2 — Redaction, publication, and API | Versioned public schema, allowlist redaction, private-to-public publisher, last-good behavior, and GET/HEAD API are implemented and locally tested. | **Passed 2026-11-07** per the acceptance manifest: redaction, publisher-failure atomicity, and public API method evidence. |
-| Stage 3 — Website and Rin | Sanitized bundle, same-origin API client, failure banners, fixture fallback, external-provider Rin path, input/output Bedrock Guardrail checks, session/daily quotas, CloudFront/TLS Terraform, and invite-only access (Cognito sign-in with MFA and PKCE, an authorizer on every API method, per-user quotas; WAF in public mode) are implemented. | **Passed 2026-11-08** per the acceptance manifest and linked evidence: HTTPS and headers, Rin evaluation, quota fallbacks, failure banners, Guardrail version 3 (26/26), and Bedrock logging review. Live Rin enabled for invited users on 2026-11-08 (Claude Haiku 4.5 on Amazon Bedrock, Guardrail version 3, $5/month provider budget, 19 questions/day); the budget kill switch, alerts, and monthly AWS budget are deployed. |
-| Stage 4 — Harden, document, and launch | AWS budget alerts, a separate daily-limit alert, atomic static-mode kill switch, and operational documentation are implemented. | **Pending.** Budget-cutoff, kill-switch recovery, actual monthly cost, launch, external-security, and load/resilience evidence remain outstanding. |
+| Stage 3 — Website and Rin | Sanitized bundle, same-origin API client, failure banners, fixture fallback, external-provider Rin path, input/output Bedrock Guardrail checks, session/daily quotas, CloudFront/TLS Terraform, and invite-only access (Cognito sign-in with MFA and PKCE, an authorizer on every API method, per-user quotas; WAF in public mode) are implemented. | **Passed 2026-11-08** per the acceptance manifest and linked evidence: HTTPS and headers, Rin evaluation, quota fallbacks, failure banners, Guardrail version 3 (26/26), and Bedrock logging review. Live Rin enabled for invited users on 2026-11-08 (Claude Haiku 4.5 on Amazon Bedrock, Guardrail version 3, $5/month provider budget, 19 questions/day). The AWS budget breaker is separate Stage 4 work. |
+| Stage 4 — Harden, document, and launch | A $5/month AWS budget, $4.50 actual/forecast SNS alert, static-mode feature flag, schedule shutdown, and active scan-work cancellation are implemented in Terraform. | **Pending.** Deploy and rehearse the budget cutoff, verify recovery, capture actual monthly cost, launch, external-security, and load/resilience evidence. |
 
 Later-stage code was prepared before earlier live gates passed; this sequencing
 deviation is documented. The checked-in manifest records Stages 1 and 2 passed
@@ -85,10 +85,11 @@ verify current and prior objects and the latest pointer.
 1. Stage 4 remains pending until budget cutoff, kill-switch recovery, actual
    monthly AWS cost, launch, external security scan, and load/resilience
    evidence are reviewed.
-2. The recorded cost estimate is $2.93/month, while the documented owner cap
-   is $10/month. This estimate and alerting configuration do not establish a
-   hard $5/month ceiling; confirm a cap at or below $5 before enabling
-   additional billable work.
+2. The recorded cost estimate is $2.93/month. Terraform fixes the AWS budget
+   at $5.00 and sends actual/forecast alerts at $4.50 to the operational
+   breaker. AWS Budgets updates are delayed, so these thresholds do not guarantee
+   the invoice stays below $5.00. Apply and rehearse the breaker before relying
+   on it.
 3. AWS Organizations and control-plane role policies, the selected Terraform
    state bucket/table, and their effective permissions are owner-managed
    prerequisites. Their deployed configuration is not independently captured
