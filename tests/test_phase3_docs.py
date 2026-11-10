@@ -16,7 +16,10 @@ def test_phase3_status_separates_local_implementation_from_live_stage_acceptance
     assert "implementation" in status.lower()
     assert "acceptance" in status.lower()
     assert "read-only" in status.lower()
-    assert "This repository does not provide credentials or direct access to the live public-results store" in normalized_status
+    assert (
+        "This repository does not provide credentials or direct access to the live public-results store"
+        in normalized_status
+    )
 
 
 def test_phase3_status_records_unavailable_aws_identity_and_pending_policy_review():
@@ -24,7 +27,10 @@ def test_phase3_status_records_unavailable_aws_identity_and_pending_policy_revie
 
     assert "audit-readonly profile can obtain an identity but AWS denies iam:ListRoles" in status
     assert "default profile resolves to account root and was not used for policy capture" in status
-    assert "effective organization and control-plane role policies remain owner-managed and unverified here" in status.lower()
+    assert (
+        "effective organization and control-plane role policies remain owner-managed and unverified here"
+        in status.lower()
+    )
     assert "does not independently query the aws account" in status.lower()
 
 
