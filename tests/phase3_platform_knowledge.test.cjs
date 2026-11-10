@@ -17,7 +17,7 @@ test("platform questions use versioned, cited approved knowledge", () => {
   const answer = answerPlatformQuestion("What does this platform do?");
   assert.equal(answer.version, "1.2.0");
   assert.match(answer.text, /read-only/i);
-  assert.ok(answer.citations.includes("README.md · What Phase 2 includes"));
+  assert.ok(answer.citations.includes("README.md · Live deployment status"));
 });
 
 test("knowledge distinguishes the public fixture site from accepted live stages", () => {
