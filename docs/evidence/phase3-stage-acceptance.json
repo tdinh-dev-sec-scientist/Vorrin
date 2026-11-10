@@ -1,96 +1,74 @@
 {
-  "schema_version": 3,
-  "stages": {
+  "schema_version": 4,
+  "canonical_status": {
     "stage1": {
       "status": "passed",
-      "reviewed_by": "Truong Dinh",
-      "reviewed_at": "2026-11-07T12:32:59-05:00",
-      "criteria": {
-        "two_consecutive_scheduled_scans": true,
-        "reviewed_new_and_resolved_drift": true,
-        "read_only_target_role_evidence": true
-      },
-      "evidence": [
-        "stage1/scheduled-scan-results.json",
-        "stage1/schedule-execution-log.json",
-        "stage1/drift-review.json",
-        "stage1/read-only-role-review.json"
-      ],
-      "evidence_sha256": {
-        "stage1/scheduled-scan-results.json": "e8672f0940ecff8b7ad0f8de8e846af002080fd25989ae6bb17fd356dc886bf4",
-        "stage1/schedule-execution-log.json": "fefd71cd14657f2073e1463d555055a5e79876235145e29af18f7b6ab6c597b3",
-        "stage1/drift-review.json": "86d826e9dd873d37a58a7076ba8a6dfe04169acb05798d61423a181e37545882",
-        "stage1/read-only-role-review.json": "8aabd7f2072f9168bbfe0957691d4273fd7bc68bc30af9d45d2dcd709e7478c2"
-      }
+      "verification_scope": "offline_fixtures_and_moto",
+      "summary": "Offline fixtures and Moto-backed Phase 3 benchmark tests pass. This verifies repository behavior only, not a deployed AWS account.",
+      "verification_evidence": [
+        "CI Python 3.11 and 3.12 pytest runs using offline fixtures and Moto."
+      ]
     },
     "stage2": {
       "status": "passed",
-      "reviewed_by": "Truong Dinh",
-      "reviewed_at": "2026-11-07T13:50:13-05:00",
-      "criteria": {
-        "redaction_and_secret_tests": true,
-        "publisher_failure_atomicity": true,
-        "public_api_method_tests": true
-      },
-      "evidence": [
-        "stage2/redaction-test-results.json",
-        "stage2/publisher-failure.json",
-        "stage2/public-api-methods.json"
-      ],
-      "evidence_sha256": {
-        "stage2/redaction-test-results.json": "129c6d891effc1584e20dfdcb442269efe08a68bb386443f02d5e71d02947f0c",
-        "stage2/publisher-failure.json": "1dcb3e7414a093cb7a023b4d784f31261eac359c23949021b6e46d14c3d70d00",
-        "stage2/public-api-methods.json": "978c557389299fa34b3f66a9ac78e058c31760cea701e0a4eca1dd1fe2a5aa12"
-      }
+      "verification_scope": "offline_fixtures_and_moto",
+      "summary": "Offline redaction, publication, and API behavior checks pass with fixtures and Moto. This does not confirm a live AWS publication path.",
+      "verification_evidence": [
+        "CI Python 3.11 and 3.12 pytest runs using offline fixtures and Moto."
+      ]
     },
     "stage3": {
-      "status": "passed",
-      "reviewed_by": "Truong Dinh",
-      "reviewed_at": "2026-11-08T10:05:32-05:00",
+      "status": "unverified",
+      "verification_scope": "pending_external_confirmation",
+      "summary": "Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending.",
+      "verification_evidence": []
+    },
+    "stage4": {
+      "status": "pending",
+      "verification_scope": "load_and_operational_resilience",
+      "summary": "Load and operational resilience benchmarks, budget-cutoff and recovery rehearsal, and actual-cost evidence remain outstanding.",
+      "verification_evidence": []
+    }
+  },
+  "deployment_gates": {
+    "stage1": {
+      "status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
       "criteria": {
-        "https_and_security_headers": true,
-        "rin_evaluation": true,
-        "quota_fallbacks": true,
-        "failure_banners": true,
-        "published_guardrail_policy_review": true,
-        "bedrock_invocation_logging_review": true
+        "two_consecutive_scheduled_scans": false,
+        "reviewed_new_and_resolved_drift": false,
+        "read_only_target_role_evidence": false
       },
-      "evidence": [
-        "stage3/bedrock-logging-review.json",
-        "stage3/bedrock-logging-settings.json",
-        "stage3/external-provider-logging-settings.json",
-        "stage3/external-tls-scan.json",
-        "stage3/failure-banners.json",
-        "stage3/guardrail-configuration.json",
-        "stage3/guardrail-evaluation.json",
-        "stage3/guardrail-policy-review.json",
-        "stage3/privacy-accessibility.json",
-        "stage3/quota-fallbacks.json",
-        "stage3/rin-evaluation.json",
-        "stage3/source-reports/accessibility.json",
-        "stage3/source-reports/browser-network.json",
-        "stage3/source-reports/external-tls.json",
-        "stage3/source-reports/lighthouse.json",
-        "stage3/transport-security.json"
-      ],
-      "evidence_sha256": {
-        "stage3/bedrock-logging-review.json": "8b81ecd726ca25776b035e27a950c0408a9b1adc457b7c38ba6db570e7530da1",
-        "stage3/bedrock-logging-settings.json": "ed4fa1573886e7680d2cf1591018d7f8d7aec1d7718049c146e8c7dd06f310b7",
-        "stage3/external-provider-logging-settings.json": "ef8b932ed6911a47fd085a6bdd565d9f798df9f88ae9a81e2bce02c744a922d3",
-        "stage3/external-tls-scan.json": "d738ab17e1a37ae9e6490ba01b244204cd207b1cdea7d5be9ecf4fcff8823a10",
-        "stage3/failure-banners.json": "31f80b122589f05e314f73b6472ca2e8b7fe43ba55fbe76bf9dcb0f94955bfdf",
-        "stage3/guardrail-configuration.json": "5d02ecc40f16e363fe6cb2b894724d6c2c3cf3cdec613aae9c168601c15ea433",
-        "stage3/guardrail-evaluation.json": "65a72738e1d2d9b42ff2a2f3a12e3a3404cd82cdae4b4e02e6535955b878d446",
-        "stage3/guardrail-policy-review.json": "c53402482c97480eca518446544f3f745b86c168cf9ed132459ffab4f55efea9",
-        "stage3/privacy-accessibility.json": "ef49733265da1391fe50301389099f753e36c09a15d8271ba36dec6922d4c0bf",
-        "stage3/quota-fallbacks.json": "466d07fa4b78fd98bcbea8aa86d0a9d809f705853cd3772364009aeb3ffbeed3",
-        "stage3/rin-evaluation.json": "ae68669b7eb79bbe037510775712537c95e7a54c35a1829438a239c936a486d4",
-        "stage3/source-reports/accessibility.json": "249cb43bc2401fe977a8433263dc0ac56ef05986137a18e0cd8773ce6d58f740",
-        "stage3/source-reports/browser-network.json": "89e2cae6f041a337e86331aa2cfe9a82d680e299f48163891ce2bf79495282f8",
-        "stage3/source-reports/external-tls.json": "e7a4aa6c43e99206a94b47142d03258fece7a175a05788db65ec4e5127e80bff",
-        "stage3/source-reports/lighthouse.json": "0927302a51023e4ebcc69cadb32e5263f2f4260d2e6fae02bf191da780777bf0",
-        "stage3/transport-security.json": "4beef4c1ee9231e3d4c76a8d9e3e62c46da248aca84b86408b12f14520fbc23c"
-      }
+      "evidence": [],
+      "evidence_sha256": {}
+    },
+    "stage2": {
+      "status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "criteria": {
+        "redaction_and_secret_tests": false,
+        "publisher_failure_atomicity": false,
+        "public_api_method_tests": false
+      },
+      "evidence": [],
+      "evidence_sha256": {}
+    },
+    "stage3": {
+      "status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "criteria": {
+        "https_and_security_headers": false,
+        "rin_evaluation": false,
+        "quota_fallbacks": false,
+        "failure_banners": false,
+        "published_guardrail_policy_review": false,
+        "bedrock_invocation_logging_review": false
+      },
+      "evidence": [],
+      "evidence_sha256": {}
     },
     "stage4": {
       "status": "pending",
