@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from auditor.rules.cloudtrail_rules import evaluate
 
 
@@ -73,15 +71,15 @@ def test_single_region_trail_covers_its_home_region():
     assert "CT-001" not in _rule_ids(data)
 
 
-@pytest.mark.parametrize(
-    ("code", "category"),
-    [("AccessDenied", "access_denied"), ("ThrottlingException", "throttled")],
-)
-def test_unreadable_trail_collection_does_not_create_ct001(code, category):
-    data = _data(
-        "us-east-2",
-        readable=False,
-        errors=[{"code": code, "category": category}],
-    )
+def test_unreadable_trail_collection_does_not_create_ct001():
+    for code, category in (
+        ("AccessDenied", "access_denied"),
+        ("ThrottlingException", "throttled"),
+    ):
+        data = _data(
+            "us-east-2",
+            readable=False,
+            errors=[{"code": code, "category": category}],
+        )
 
-    assert "CT-001" not in _rule_ids(data)
+        assert "CT-001" not in _rule_ids(data)
