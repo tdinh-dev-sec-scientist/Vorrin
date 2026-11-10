@@ -10,23 +10,22 @@ def test_phase3_status_separates_local_implementation_from_live_stage_acceptance
     status = (ROOT / "docs/phase3-status.md").read_text(encoding="utf-8")
     normalized_status = " ".join(status.split())
 
-    assert "No live stage gate has passed" in normalized_status
+    assert "Stages 1–3 as passed and Stage 4 as pending" in normalized_status
     for stage in ("Stage 1", "Stage 2", "Stage 3", "Stage 4"):
         assert stage in status
     assert "implementation" in status.lower()
     assert "acceptance" in status.lower()
     assert "read-only" in status.lower()
-    assert "No profile with access to the Phase 3 public-results store is configured" in normalized_status
+    assert "This repository does not provide credentials or direct access to the live public-results store" in normalized_status
 
 
 def test_phase3_status_records_unavailable_aws_identity_and_pending_policy_review():
     status = " ".join((ROOT / "docs/phase3-status.md").read_text(encoding="utf-8").split())
 
-    assert "`audit-readonly` profile can obtain an identity but AWS denies `iam:ListRoles`" in status
-    assert "`default` profile resolves to account root" in status
-    assert "no actual aws role policies were captured" in status.lower()
-    assert "org and control-plane plan/apply roles separate and pending" in status.lower()
-    assert "version-3 role manifest" in status.lower()
+    assert "audit-readonly profile can obtain an identity but AWS denies iam:ListRoles" in status
+    assert "default profile resolves to account root and was not used for policy capture" in status
+    assert "effective organization and control-plane role policies remain owner-managed and unverified here" in status.lower()
+    assert "does not independently query the aws account" in status.lower()
 
 
 def test_role_scope_manifest_records_are_pending_or_complete_untampered_reviews():
@@ -158,6 +157,9 @@ def test_stage_three_review_requires_digest_bound_captures_and_short_prompt_rete
     bootstrap = (ROOT / "docs/phase3-bootstrap.md").read_text(encoding="utf-8")
     status = (ROOT / "docs/phase3-status.md").read_text(encoding="utf-8")
 
+    manifest = json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text(encoding="utf-8"))
+    stage3 = manifest["stages"]["stage3"]
+
     for artifact in (
         "stage3/guardrail-configuration.json",
         "stage3/guardrail-evaluation.json",
@@ -165,7 +167,8 @@ def test_stage_three_review_requires_digest_bound_captures_and_short_prompt_rete
         "stage3/external-provider-logging-settings.json",
     ):
         assert artifact in bootstrap
-        assert artifact in status
+        assert artifact in stage3["evidence"]
+        assert artifact in stage3["evidence_sha256"]
     assert "matching SHA-256" in bootstrap
     assert "capped at 30" in bootstrap
     assert "expected/observed action" in bootstrap
