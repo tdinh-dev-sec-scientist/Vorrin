@@ -81,7 +81,7 @@ resource "aws_iam_role_policy_attachment" "target_readonly" {
 #checkov:skip=CKV_AWS_56:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 resource "aws_s3_bucket" "demo_a" {
   #checkov:skip=CKV_AWS_145:SSE-S3 keeps the disposable demo bucket encrypted without KMS request costs.
-  #checkov:skip=CKV2_AWS_6:This resource intentionally models bucket-level drift; account-level blocking and the SCP prevent public exposure.
+  #checkov:skip=CKV2_AWS_6:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
   bucket        = local.demo_a_bucket_name
   force_destroy = false
 
@@ -96,9 +96,9 @@ resource "aws_s3_bucket" "demo_a" {
 #checkov:skip=CKV_AWS_54:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 #checkov:skip=CKV_AWS_55:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 #checkov:skip=CKV_AWS_56:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
-#checkov:skip=CKV2_AWS_6:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 resource "aws_s3_bucket" "demo_b" {
   #checkov:skip=CKV_AWS_145:SSE-S3 keeps the disposable demo bucket encrypted without KMS request costs.
+  #checkov:skip=CKV2_AWS_6:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
   bucket        = local.demo_b_bucket_name
   force_destroy = false
 
@@ -154,9 +154,9 @@ resource "aws_s3_bucket_ownership_controls" "demo_b" {
 #checkov:skip=CKV_AWS_54:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 #checkov:skip=CKV_AWS_55:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 #checkov:skip=CKV_AWS_56:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
-#checkov:skip=CKV2_AWS_6:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
 resource "aws_s3_bucket" "cloudtrail" {
   #checkov:skip=CKV_AWS_145:CloudTrail logs use SSE-S3 at rest; a customer-managed KMS key adds cost without a plan requirement.
+  #checkov:skip=CKV2_AWS_6:Organizations S3_POLICY enforces all four Block Public Access settings for the demo OU.
   bucket        = local.trail_bucket_name
   force_destroy = false
   tags          = { project = "guardrails-phase3" }
