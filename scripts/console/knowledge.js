@@ -5,30 +5,30 @@
 })(typeof globalThis === "undefined" ? this : globalThis, function createPhase3PlatformKnowledge() {
   "use strict";
 
-  const KNOWLEDGE_VERSION = "1.1.0";
+  const KNOWLEDGE_VERSION = "1.2.0";
   const entries = [
     {
       id: "phase3-status",
       match: /\bphase\s*3\b.*\b(live|deploy|status|complete|done|website|ready)\b|\b(is|has)\b.*\b(live|deployed|launched)\b.*\b(website|phase\s*3|demo)\b/i,
-      text: "Phase 3 is not live yet. The local implementation exists, but no live stage gate has passed and no Phase 3 AWS resources have been created.",
-      citations: ["docs/phase3-status.md · Stage status"],
+      text: "The public GitHub Pages site is a static Moto/fixture replay, not the separate Phase 3 live console. The checked-in acceptance manifest records Stages 1, 2, and 3 as passed through 2026-11-08; Stage 4 remains pending. Live Rin is invite-only according to the repository evidence.",
+      citations: ["docs/evidence/phase3-stage-acceptance.json", "docs/phase3-status.md · Stage status"],
     },
     {
       id: "access-control",
       match: /\b(sign[- ]?in|log[- ]?in|invite[ds]?|invite[- ]only|access control|private access|mfa)\b|\bwho can\b.*\b(use|access|see|sign)\b/i,
-      text: "The planned Phase 3 deployment defaults to invite-only access. The owner creates each account; there is no self sign-up. Users sign in through Cognito with mandatory MFA, and every API and Rin request needs a valid ID token, which the API re-checks. Rin's quota is counted per signed-in user. The saved fixtures on this page stay visible without signing in. Phase 3 is not deployed yet.",
+      text: "The separate Phase 3 live console is invite-only. The owner creates each account; there is no self sign-up. Users sign in through Cognito with mandatory MFA, and every API and Rin request needs a valid ID token, which the API re-checks. Rin's quota is counted per signed-in user. The public fixture page stays visible without signing in.",
       citations: ["docs/private-access.md", "docs/phase3-access-mode-amendment.md"],
     },
     {
       id: "read-only-boundary",
       match: /\b(read[- ]only|read only)\b|\b(?:aws|target account|scan results)\b.*\b(write access|write to|modify|change)\b|\b(?:does|can)\s+(?:rin|the scan worker|the public api)\b.*\b(write|modify|change)\b|\b(?:what|which)\b.*\bpermissions?\b.*\b(rin|public api|scan worker)\b/i,
-      text: "In the local design, the scan worker reads target AWS resources only. The public API reads sanitized scan data and its feature flag, and writes only to its own CloudWatch log group. Rin reads sanitized scan data, its feature flag, and its provider secret; Rin's role writes only to its own CloudWatch log group and invokes a separate quota function, which writes per-session and daily counters to its own DynamoDB table. The public API and Rin cannot change target AWS resources or scan results. Stage 1 demo-account Terraform uses a separate protected apply approval to create or fix demo resources; later Phase 3 stacks remain disabled until their predecessor acceptance is recorded. The deployed role policies have not yet been captured and reviewed.",
+      text: "In the live design, the scan worker reads target AWS resources only. The public API reads sanitized scan data and its feature flag, and writes only to its own CloudWatch log group. Rin reads sanitized scan data, its feature flag, and its provider secret; Rin's role writes only to its own CloudWatch log group and invokes a separate quota function, which writes per-session and daily counters to its own DynamoDB table. The public API and Rin cannot change target AWS resources or scan results. Stage 1 demo-account Terraform uses a separate apply approval to create or fix demo resources; later Phase 3 stacks remain disabled until their predecessor acceptance is recorded. The repository includes a Stage 1 read-only-role review; owner-managed organization and control-plane role policies are not captured here.",
       citations: ["docs/least-privilege.md · The chain", "docs/phase3-status.md · Confirmed assumptions and permission boundary", "infra/phase3/policies/rin-readonly.json · Service boundary", "infra/phase3/control-plane/stage3.tf · Rin runtime and log policy", ".github/workflows/phase3-terraform.yml · Protected apply"],
     },
     {
       id: "rin-privacy",
       match: /\b(rin|assistant|chatbot|ai analyst|model)\b.*\b(provider|privacy|data|enabled|access|aws|permission|permissions|tool|tools|answer|answers|send|external|store|capabilities|guardrail|moderation|prompt)\b|\bwhat is rin\b(?!['’]s?\b)/i,
-      text: "Rin is an optional assistant. It can explain one redacted finding, has no target-account scanning tools, and cannot change scan results. When enabled, an owner-managed Bedrock Guardrail checks the bounded redacted input before the external model and validates the answer before it reaches the visitor. A block or Guardrail error selects the fixture fallback. Live answering stays disabled until the provider, secret rotation, published Guardrail, quotas, and separate budget are configured.",
+      text: "Rin is enabled for invited users according to the Stage 3 acceptance record. It can explain one redacted finding, has no target-account scanning tools, and cannot change scan results. The public GitHub Pages demo uses local fixture answers only; no model is connected to that site. In the separate live service, an owner-managed Bedrock Guardrail checks bounded redacted input and validates the answer before it reaches the visitor.",
       citations: ["docs/ai-analyst.md · Evidence-bound output", "docs/phase3-bootstrap.md · Rin Bedrock Guardrail", "docs/phase3-status.md · Stage 3"],
     },
     {
@@ -40,7 +40,7 @@
     {
       id: "architecture-flow",
       match: /\b(architecture|data flow)\b|\bhow does\b.*\b(public demo|phase\s*3 website|publication path)\b.*\b(work|flow|move)\b|\bwhere.*\b(public|private) data\b/i,
-      text: "Planned Phase 3 flow: a scanner reads the dedicated target account through its read-only role and records a private snapshot; a separate publisher redacts and validates that snapshot into an isolated public store; the public API and website read only the sanitized copy. No Phase 3 live stage has passed, so this flow is not deployed.",
+      text: "According to the repository's Stage 1–3 acceptance record, the separate live flow uses a scanner that reads the dedicated target account through its read-only role and records a private snapshot; a publisher redacts and validates that snapshot into an isolated public store; the API and website read only the sanitized copy. The public GitHub Pages site remains a static fixture replay, while the live console is invite-only.",
       citations: ["docs/phase3-status.md · Stage status", "docs/phase3-bootstrap.md"],
     },
     {
@@ -70,14 +70,14 @@
     {
       id: "budget-status",
       match: /\b(cost|budget|monthly cap|provider rates)\b.*\b(approved|estimate|recorded|cap|enforcement|controls?)\b|\b(what|which|is there)\b.*\b(cost|budget|monthly cap|provider rates)\b/i,
-      text: "No owner-approved AWS pricing estimate or monthly AWS cap is recorded; both are required before Stage 2 deployment. Rin must also stay disabled until a provider and model, managed secret and rotation, current rates, a published Bedrock Guardrail, separate AI budget, and budget-cutoff tests are approved. No live stage gate has passed.",
-      citations: ["docs/costs.md", "docs/phase3-status.md · Inputs and evidence still required"],
+      text: "The recorded AWS estimate is $2.93 per month and the documented owner cap is $10. Stage 4 remains pending its budget cutoff, kill-switch recovery, and actual-cost evidence. A budget alert is not a hard spend cap; confirm an owner cap at or below $5 before enabling additional billable work. Rin's model-provider budget is separate.",
+      citations: ["docs/evidence/aws-cost-estimate.md", "docs/evidence/phase3-stage-acceptance.json", "docs/phase3-status.md · Remaining Stage 4 evidence"],
     },
     {
       id: "platform-overview",
       match: /\b(what|describe|explain)\b.*\b(platform|project|vorrin|guardrails)\b|\b(platform|project)\b.*\b(do|include|purpose|scope)\b/i,
-      text: "Vorrin is a read-only AWS cloud-security guardrails platform. Phase 2 checks AWS account posture and infrastructure policy, gates changes, and records drift. Phase 3 is the planned public live demo, and its live acceptance remains pending.",
-      citations: ["README.md · What Phase 2 includes", "docs/implementation-status.md · Phase 2 scope", "docs/phase3-status.md · Stage status"],
+      text: "Vorrin is a read-only AWS cloud-security guardrails platform. Phase 2 checks AWS account posture and infrastructure policy, gates changes, and records drift. The repository records Phase 3 Stages 1–3 as passed for a separate invite-only live console; Stage 4 remains pending. The public GitHub Pages site is a static Moto/fixture replay.",
+      citations: ["README.md · Live deployment status", "docs/evidence/phase3-stage-acceptance.json", "docs/phase3-status.md · Stage status"],
     },
   ];
 
