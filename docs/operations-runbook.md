@@ -213,8 +213,8 @@ acceptance.
   Fargate scan tasks. The Terraform AWS budget is fixed at $5.00/month.
 - AWS Budgets data is updated up to three times daily and can lag charges by
   8–12 hours. Forecast alerts require about five weeks of usage history. The
-  breaker is best-effort, not a guaranteed billing limit; in-flight charges
-  and late-reported usage can exceed the configured budget.
+  breaker is best-effort, not a hard spend limit or a guaranteed billing limit;
+  in-flight charges and late-reported usage can exceed the configured budget.
 
 ### Kill switch and recovery
 
