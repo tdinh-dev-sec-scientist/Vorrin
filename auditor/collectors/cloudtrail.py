@@ -34,9 +34,9 @@ def collect(session, config: dict[str, Any] | None = None) -> dict[str, Any]:
 
     log.info("Starting CloudTrail collection")
     try:
-        # Shadow trails are replicas of multi-region trails from other regions;
-        # including them would double-count one trail as several.
-        response = client.describe_trails(includeShadowTrails=False)
+        # Include shadow trails so a multi-region trail remains visible outside
+        # its home region during per-region fleet scans.
+        response = client.describe_trails(includeShadowTrails=True)
     except AWS_EXCEPTIONS as exc:
         record_error(
             errors,
