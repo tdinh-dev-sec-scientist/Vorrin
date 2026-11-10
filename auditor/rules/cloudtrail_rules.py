@@ -1,13 +1,13 @@
 """CloudTrail rules.
 
-  CT-001  No trail configured                     HIGH
+  CT-001  No trail covers the evaluated region     HIGH
   CT-002  No multi-region trail                    MEDIUM
   CT-003  Log file validation disabled             MEDIUM
   CT-004  Trail not logging / delivery failing     HIGH
 
-CT-001/CT-002 are account-level: they describe the trail estate as a whole.
-CT-003/CT-004 are per-trail. The split matters because remediation differs --
-one is "create a trail", the other is "fix this trail".
+CT-001 checks coverage for the current regional scan; CT-002 describes the
+account's trail estate. CT-003/CT-004 are per-trail. The split matters because
+remediation differs -- one is "create a trail", the other is "fix this trail".
 """
 
 from __future__ import annotations
