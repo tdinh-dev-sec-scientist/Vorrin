@@ -155,7 +155,6 @@ def test_stage_three_passed_only_with_reviewed_guardrail_and_logging_evidence():
 
 def test_stage_three_review_requires_digest_bound_captures_and_short_prompt_retention():
     bootstrap = (ROOT / "docs/phase3-bootstrap.md").read_text(encoding="utf-8")
-    status = (ROOT / "docs/phase3-status.md").read_text(encoding="utf-8")
 
     manifest = json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text(encoding="utf-8"))
     stage3 = manifest["stages"]["stage3"]
