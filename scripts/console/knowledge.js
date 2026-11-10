@@ -28,7 +28,7 @@
     {
       id: "rin-privacy",
       match: /\b(rin|assistant|chatbot|ai analyst|model)\b.*\b(provider|privacy|data|enabled|access|aws|permission|permissions|tool|tools|answer|answers|send|external|store|capabilities|guardrail|moderation|prompt)\b|\bwhat is rin\b(?!['’]s?\b)/i,
-      text: "Rin is enabled for invited users according to the Stage 3 acceptance record. It can explain one redacted finding, has no target-account scanning tools, and cannot change scan results. The public GitHub Pages demo uses local fixture answers only; no model is connected to that site. In the separate live service, an owner-managed Bedrock Guardrail checks bounded redacted input and validates the answer before it reaches the visitor.",
+      text: "Rin is enabled for invited users according to the Stage 3 acceptance record. It can explain one redacted finding, has no target-account scanning tools, and cannot change scan results. The public GitHub Pages demo uses local fixture answers only; no model is connected to that site. In the separate live service, an owner-managed Bedrock Guardrail checks the bounded redacted input before the external model and validates the answer before it reaches the visitor. A block, invalid response, or service error selects the fixture fallback.",
       citations: ["docs/ai-analyst.md · Evidence-bound output", "docs/phase3-bootstrap.md · Rin Bedrock Guardrail", "docs/phase3-status.md · Stage 3"],
     },
     {
