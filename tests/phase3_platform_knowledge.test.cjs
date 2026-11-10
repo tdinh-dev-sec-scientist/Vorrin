@@ -67,7 +67,7 @@ test("approved knowledge covers architecture, IaC, controls, drift, and cost sta
     ["What CIS controls are mapped?", /11 of 14/i, "docs/cis-mapping.md"],
     ["How does drift handle an incomplete scan?", /UNKNOWN/i, "docs/fleet-scanning.md"],
     ["What monthly budget is approved?", /recorded AWS estimate is \$2\.93 per month and the AWS budget is capped at \$5\.00/i, "docs/evidence/aws-cost-estimate.md"],
-    ["How does budget enforcement work?", /Stage 4 remains pending its budget cutoff, kill-switch recovery, and actual-cost evidence/i, "docs/phase3-status.md"],
+    ["How does budget enforcement work?", /Stage 4 remains pending its cutoff rehearsal, recovery, and actual-cost evidence/i, "docs/phase3-status.md"],
   ];
 
   for (const [question, expectedAnswer, source] of cases) {

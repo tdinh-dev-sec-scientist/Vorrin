@@ -70,7 +70,7 @@
     {
       id: "budget-status",
       match: /\b(cost|budget|monthly cap|provider rates)\b.*\b(approved|estimate|recorded|cap|enforcement|controls?)\b|\b(what|which|is there)\b.*\b(cost|budget|monthly cap|provider rates)\b/i,
-      text: "The recorded AWS estimate is $2.93 per month and the AWS budget is capped at $5.00. At $4.50 actual or forecasted spend, SNS invokes Lambda to disable scheduled scans and running Fargate work, turn off live Rin, and select static mode. AWS Budgets data can lag and forecast alerts need about five weeks of history, so this is an operational breaker, not a guaranteed bill cap. Stage 4 remains pending its cutoff rehearsal, recovery, and actual-cost evidence. Rin's provider budget is separate.",
+      text: "The recorded AWS estimate is $2.93 per month and the AWS budget is capped at $5.00. At $4.50 actual or forecasted spend, SNS invokes Lambda to disable scheduled scans, stop running Step Functions executions and Fargate scan tasks, turn off live Rin, and select static mode. AWS Budgets data can lag and forecast alerts need about five weeks of history, so this is an operational breaker, not a guaranteed bill cap. Stage 4 remains pending its cutoff rehearsal, recovery, and actual-cost evidence. Rin's provider budget is separate.",
       citations: ["docs/evidence/aws-cost-estimate.md", "docs/evidence/phase3-stage-acceptance.json", "docs/phase3-status.md · Remaining Stage 4 evidence"],
     },
     {

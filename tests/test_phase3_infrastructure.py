@@ -674,12 +674,19 @@ def test_demo_terraform_apply_role_cannot_change_public_access_block_settings():
     deny = apply_role_policy.split('Sid      = "DenyPublicAccessBlockMutations"', 1)[1].split("},", 1)[0]
     assert '"s3:PutAccountPublicAccessBlock"' in deny
     assert '"s3:PutBucketPublicAccessBlock"' in deny
-    assert 'Action   = ["s3:GetAccountPublicAccessBlock", "s3:PutAccountPublicAccessBlock"]' not in apply_role_policy
-    secure_buckets = apply_role_policy.split('Sid    = "CreateAndSecureNamedDemoBuckets"', 1)[1].split("},", 1)[0]
-    assert 's3:PutBucketPublicAccessBlock' not in secure_buckets
+    assert (
+        'Action   = ["s3:GetAccountPublicAccessBlock", "s3:PutAccountPublicAccessBlock"]'
+        not in apply_role_policy
+    )
+    secure_buckets = apply_role_policy.split('Sid    = "CreateAndSecureNamedDemoBuckets"', 1)[1].split(
+        "},", 1
+    )[0]
+    assert "s3:PutBucketPublicAccessBlock" not in secure_buckets
     assert '"s3:PutBucketPolicy"' not in secure_buckets
     assert "Resource = local.demo_bucket_arns" in secure_buckets
-    cloudtrail_policy = apply_role_policy.split('Sid      = "ManageOnlyCloudTrailBucketPolicy"', 1)[1].split("},", 1)[0]
+    cloudtrail_policy = apply_role_policy.split('Sid      = "ManageOnlyCloudTrailBucketPolicy"', 1)[1].split(
+        "},", 1
+    )[0]
     assert '"s3:PutBucketPolicy"' in cloudtrail_policy
     assert "Resource = local.trail_bucket_arn" in cloudtrail_policy
     assert 'resource "aws_s3_bucket_public_access_block"' not in demo_account
@@ -766,9 +773,7 @@ def test_platform_flags_change_only_through_an_explicit_reviewed_replacement():
     stage1 = (ROOT / "infra/phase3/control-plane/stage1.tf").read_text(encoding="utf-8")
 
     # Routine applies keep whatever the kill switch wrote.
-    assert re.search(
-        r'resource "aws_scheduler_schedule" "scan".*?ignore_changes = \[state\]', stage1, re.S
-    )
+    assert re.search(r'resource "aws_scheduler_schedule" "scan".*?ignore_changes = \[state\]', stage1, re.S)
     assert re.search(
         r'resource "aws_dynamodb_table_item" "platform_config".*?ignore_changes = \[item\]', stage3, re.S
     )
@@ -790,14 +795,15 @@ def test_monthly_aws_budget_has_a_five_dollar_cap_and_four_fifty_cost_breaker():
     assert "default     = 5.0" in variables
     assert "condition     = var.monthly_budget_usd == 5.0" in variables
     assert "nullable    = false" in variables
-    assert "limit_amount = format(\"%.2f\", var.monthly_budget_usd)" in stage4
+    assert 'limit_amount = format("%.2f", var.monthly_budget_usd)' in stage4
     assert "TF_VAR_monthly_budget_usd: ${{ vars.PHASE3_MONTHLY_BUDGET_USD || '5.0' }}" in workflow
     assert "budget_kill_threshold = 4.5" in stage4
 
     notifications = re.findall(r"notification \{(.*?)\n  \}", stage4, re.S)
     for notification_type in ("ACTUAL", "FORECASTED"):
         matching = [
-            block for block in notifications
+            block
+            for block in notifications
             if f'notification_type          = "{notification_type}"' in block
             and "threshold                  = local.budget_kill_threshold" in block
             and 'threshold_type             = "ABSOLUTE_VALUE"' in block

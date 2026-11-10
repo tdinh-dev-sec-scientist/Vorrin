@@ -54,7 +54,7 @@ resource "aws_iam_role_policy" "kill_switch_runtime" {
     scan_schedule_arn      = try(aws_scheduler_schedule.scan[0].arn, "")
     scan_state_machine_arn = try(aws_sfn_state_machine.scan[0].arn, "")
     scan_execution_arn     = "arn:${data.aws_partition.current.partition}:states:${var.aws_region}:${data.aws_caller_identity.current.account_id}:execution:${var.bucket_prefix}-p3-scheduled-scan:*"
-    scan_cluster_arn       = try(aws_ecs_cluster.scan[0].arn, "")
+    scan_cluster_arn       = try(aws_ecs_cluster.scan.arn, "")
     scan_task_arn_pattern  = "arn:${data.aws_partition.current.partition}:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task/${local.scan_cluster_name}/*"
     scheduler_role_arn     = try(aws_iam_role.scheduler[0].arn, "")
   })
@@ -98,7 +98,7 @@ resource "aws_lambda_function" "kill_switch" {
       PHASE3_BUDGET_KILL_TOPIC_ARN  = aws_sns_topic.budget_kill[0].arn
       PHASE3_SCAN_SCHEDULE_NAME     = try(aws_scheduler_schedule.scan[0].name, "")
       PHASE3_SCAN_STATE_MACHINE_ARN = try(aws_sfn_state_machine.scan[0].arn, "")
-      PHASE3_SCAN_ECS_CLUSTER_ARN   = try(aws_ecs_cluster.scan[0].arn, "")
+      PHASE3_SCAN_ECS_CLUSTER_ARN   = try(aws_ecs_cluster.scan.arn, "")
     }
   }
 }
