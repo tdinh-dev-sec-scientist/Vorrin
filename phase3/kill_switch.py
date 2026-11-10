@@ -168,7 +168,7 @@ def disable_live_features(
             failures.append("scan tasks")
 
     if failures:
-        raise KillSwitchError("one or more Phase 3 cost controls could not be applied")
+        raise KillSwitchError("one or more Phase 3 cost controls could not be disabled")
     return {"status": "DISABLED"}
 
 
