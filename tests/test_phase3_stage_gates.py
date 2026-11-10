@@ -352,7 +352,8 @@ def _stage_artifact(relative: str, reviewer: str, reviewed_at: str) -> dict:
 def _write_manifest(root: Path, *, accepted: set[str] = frozenset(), missing_evidence: bool = False) -> Path:
     evidence_root = root / "docs/evidence"
     evidence_root.mkdir(parents=True)
-    stages = {}
+    deployment_gates = {}
+    canonical_status = {}
     for name, criteria in STAGE_CRITERIA.items():
         is_accepted = name in accepted
         evidence = []
@@ -379,7 +380,7 @@ def _write_manifest(root: Path, *, accepted: set[str] = frozenset(), missing_evi
                     if evidence_path.exists()
                     else "0" * 64
                 )
-        stages[name] = {
+        deployment_gates[name] = {
             "status": "passed" if is_accepted else "pending",
             "reviewed_by": "security-reviewer" if is_accepted else None,
             "reviewed_at": datetime(2026, 11, 3, tzinfo=UTC).isoformat() if is_accepted else None,
@@ -387,14 +388,50 @@ def _write_manifest(root: Path, *, accepted: set[str] = frozenset(), missing_evi
             "evidence": evidence,
             "evidence_sha256": evidence_hashes if is_accepted else {},
         }
+        if is_accepted:
+            canonical_status[name] = {
+                "status": "passed",
+                "verification_scope": "private_aws_verification",
+                "summary": "Test fixture for private AWS verification.",
+                "verification_evidence": ["synthetic test evidence"],
+            }
+        elif name in {"stage1", "stage2"}:
+            canonical_status[name] = {
+                "status": "passed",
+                "verification_scope": "offline_fixtures_and_moto",
+                "summary": "Test fixture for offline fixture and Moto verification.",
+                "verification_evidence": ["synthetic test evidence"],
+            }
+        elif name == "stage3":
+            canonical_status[name] = {
+                "status": "unverified",
+                "verification_scope": "pending_external_confirmation",
+                "summary": "Test fixture awaiting external confirmation.",
+                "verification_evidence": [],
+            }
+        else:
+            canonical_status[name] = {
+                "status": "pending",
+                "verification_scope": "load_and_operational_resilience",
+                "summary": "Test fixture pending load and resilience verification.",
+                "verification_evidence": [],
+            }
     path = evidence_root / "phase3-stage-acceptance.json"
-    path.write_text(json.dumps({"schema_version": 3, "stages": stages}), encoding="utf-8")
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 4,
+                "canonical_status": canonical_status,
+                "deployment_gates": deployment_gates,
+            }
+        ),
+        encoding="utf-8",
+    )
     return path
-
 
 def _add_guardrail_review_artifacts(manifest: Path) -> None:
     value = json.loads(manifest.read_text(encoding="utf-8"))
-    record = value["stages"]["stage3"]
+    record = value["deployment_gates"]["stage3"]
     reviewed_by = record["reviewed_by"]
     reviewed_at = record["reviewed_at"]
     guardrail_arn = "arn:aws:bedrock:us-east-1:123456789012:guardrail/guardrail123"
@@ -527,7 +564,7 @@ def _add_guardrail_review_artifacts(manifest: Path) -> None:
 
 def _refresh_stage_evidence_hashes(manifest: Path, stage_name: str) -> None:
     value = json.loads(manifest.read_text(encoding="utf-8"))
-    record = value["stages"][stage_name]
+    record = value["deployment_gates"][stage_name]
     record["evidence_sha256"] = {
         relative: hashlib.sha256((manifest.parent / relative).read_bytes()).hexdigest()
         for relative in record["evidence"]
@@ -545,7 +582,7 @@ def test_stage_two_is_blocked_until_stage_one_has_reviewed_evidence(tmp_path):
 def test_stage_one_cannot_pass_with_a_generic_placeholder_file(tmp_path):
     manifest = _write_manifest(tmp_path, accepted={"stage1"})
     value = json.loads(manifest.read_text(encoding="utf-8"))
-    record = value["stages"]["stage1"]
+    record = value["deployment_gates"]["stage1"]
     placeholder = manifest.parent / "stage1/acceptance.json"
     placeholder.write_text('{"checked":true}\n', encoding="utf-8")
     record["evidence"] = ["stage1/acceptance.json"]
@@ -594,6 +631,14 @@ def test_stage_three_requires_both_stage_one_and_stage_two_acceptance(tmp_path):
         validate_stage_gates(manifest, root=tmp_path, enabled_stages={2, 3})
 
 
+def test_stage_three_cannot_pass_canonical_status_before_private_predecessors(tmp_path):
+    manifest = _write_manifest(tmp_path, accepted={"stage3"})
+    _add_guardrail_review_artifacts(manifest)
+
+    with pytest.raises(StageGateError, match="stage3 cannot pass before every preceding stage"):
+        validate_stage_gates(manifest, root=tmp_path, enabled_stages=set())
+
+
 def test_stage_three_acceptance_explicitly_requires_guardrail_policy_and_logging_review():
     assert {
         "published_guardrail_policy_review",
@@ -631,7 +676,7 @@ def test_stage_three_rin_evaluation_requires_every_plan_test_category(tmp_path):
 def test_stage_three_rejects_placeholder_guardrail_review_documents(tmp_path):
     manifest = _write_manifest(tmp_path, accepted={"stage1", "stage2", "stage3"})
     value = json.loads(manifest.read_text(encoding="utf-8"))
-    evidence = value["stages"]["stage3"]["evidence"]
+    evidence = value["deployment_gates"]["stage3"]["evidence"]
     for path in ("stage3/guardrail-policy-review.json", "stage3/bedrock-logging-review.json"):
         artifact = manifest.parent / path
         artifact.write_text('{"reviewed":true}\n', encoding="utf-8")
@@ -646,7 +691,7 @@ def test_stage_three_rejects_placeholder_guardrail_review_documents(tmp_path):
         (manifest.parent / path).write_text("{}\n", encoding="utf-8")
         if path not in evidence:
             evidence.append(path)
-    value["stages"]["stage3"]["evidence_sha256"] = {
+    value["deployment_gates"]["stage3"]["evidence_sha256"] = {
         path: hashlib.sha256((manifest.parent / path).read_bytes()).hexdigest() for path in evidence
     }
     manifest.write_text(json.dumps(value), encoding="utf-8")
@@ -803,7 +848,7 @@ def test_stage_gate_rejects_a_passed_stage_with_missing_evidence_artifact(tmp_pa
 def test_stage_gate_rejects_evidence_paths_that_escape_docs_evidence(tmp_path):
     manifest = _write_manifest(tmp_path, accepted={"stage1"})
     value = json.loads(manifest.read_text(encoding="utf-8"))
-    value["stages"]["stage1"]["evidence"] = ["../../README.md"]
+    value["deployment_gates"]["stage1"]["evidence"] = ["../../README.md"]
     manifest.write_text(json.dumps(value), encoding="utf-8")
 
     with pytest.raises(StageGateError, match="invalid evidence path"):
@@ -813,8 +858,8 @@ def test_stage_gate_rejects_evidence_paths_that_escape_docs_evidence(tmp_path):
 def test_stage_gate_rejects_duplicate_json_keys_in_the_acceptance_manifest(tmp_path):
     manifest = _write_manifest(tmp_path)
     manifest_text = manifest.read_text(encoding="utf-8").replace(
-        '"schema_version": 3,',
-        '"schema_version": 3, "schema_version": 3,',
+        '"schema_version": 4,',
+        '"schema_version": 4, "schema_version": 4,',
         1,
     )
     manifest.write_text(manifest_text, encoding="utf-8")
@@ -1011,8 +1056,8 @@ def test_workflow_gate_cli_allows_disabled_stages_but_blocks_stage_two(tmp_path)
     # Run against all-pending stage records so the result does not depend on the
     # repository's real, checked-in acceptance evidence.
     manifest = json.loads((script.parents[1] / "docs/evidence/phase3-stage-acceptance.json").read_text())
-    for name, stage in manifest["stages"].items():
-        manifest["stages"][name] = {
+    for name, stage in manifest["deployment_gates"].items():
+        manifest["deployment_gates"][name] = {
             "status": "pending",
             "reviewed_by": None,
             "reviewed_at": None,
