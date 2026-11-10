@@ -17,16 +17,30 @@ test("platform questions use versioned, cited approved knowledge", () => {
   const answer = answerPlatformQuestion("What does this platform do?");
   assert.equal(answer.version, "1.3.0");
   assert.match(answer.text, /read-only/i);
-  assert.ok(answer.citations.includes("README.md · Live deployment status"));
+  assert.ok(answer.citations.includes("README.md · Phase 3 deployment status"));
 });
 
-test("knowledge distinguishes the public fixture site from accepted live stages", () => {
+test("generated canonical status drives Phase 3 answers", () => {
+  const status = knowledge.PHASE3_STATUS;
+  assert.equal(status.stages.stage1.status, "passed");
+  assert.equal(status.stages.stage2.status, "passed");
+  assert.equal(status.stages.stage3.status, "unverified");
+  assert.equal(status.stages.stage4.status, "pending");
+
   const answer = answerPlatformQuestion("Is the Phase 3 website live?");
   assert.equal(answer.version, "1.3.0");
   assert.match(answer.text, /public GitHub Pages site is a static Moto\/fixture replay/i);
-  assert.match(answer.text, /Stages 1, 2, and 3 as passed/i);
-  assert.match(answer.text, /Stage 4 remains pending/i);
+  assert.ok(answer.text.includes(status.summary));
+  assert.ok(answer.text.includes(status.stages.stage3.label));
+  assert.doesNotMatch(answer.text, /Stages 1, 2, and 3 as passed|live Rin is invite-only/i);
   assert.ok(answer.citations.includes("docs/evidence/phase3-stage-acceptance.json"));
+});
+
+test("Rin answers do not claim live enablement without canonical verification", () => {
+  const answer = answerPlatformQuestion("Is Rin enabled to use the live provider?");
+  assert.equal(answer.id, "rin-privacy");
+  assert.ok(answer.text.includes(knowledge.PHASE3_STATUS.stages.stage3.label));
+  assert.doesNotMatch(answer.text, /Rin is enabled for invited users/i);
 });
 
 test("unsupported platform questions do not receive invented knowledge", () => {
@@ -50,8 +64,9 @@ test("Rin boundary answer distinguishes AWS reads from internal quota writes", (
 test("Rin knowledge explains input and output Guardrail checks with fixture fallback", () => {
   const answer = answerPlatformQuestion("How does Rin's Guardrail protect prompts?");
   assert.equal(answer.id, "rin-privacy");
-  assert.match(answer.text, /checks the bounded redacted input before the external model/i);
-  assert.match(answer.text, /validates the answer before it reaches the visitor/i);
+  assert.match(answer.text, /intended to check bounded redacted input and validate the answer/i);
+  assert.ok(answer.text.includes(knowledge.PHASE3_STATUS.stages.stage3.label));
+  assert.match(answer.text, /validate the answer before it reaches a visitor/i);
   assert.match(answer.text, /Guardrail errors use that fallback too/i);
   assert.ok(answer.citations.includes("docs/phase3-bootstrap.md · Rin Bedrock Guardrail"));
 });
@@ -66,8 +81,8 @@ test("approved knowledge covers architecture, IaC, controls, drift, and cost sta
     ["What file types can IaC scanning handle?", /Terraform.*Kubernetes/i, "docs/iac-scanning.md"],
     ["What CIS controls are mapped?", /11 of 14/i, "docs/cis-mapping.md"],
     ["How does drift handle an incomplete scan?", /UNKNOWN/i, "docs/fleet-scanning.md"],
-    ["What monthly budget is approved?", /recorded AWS estimate is \$2\.93 per month and the AWS budget is capped at \$5\.00/i, "docs/evidence/aws-cost-estimate.md"],
-    ["How does budget enforcement work?", /Stage 4 remains pending its cutoff rehearsal, recovery, and actual-cost evidence/i, "docs/phase3-status.md"],
+    ["What monthly budget is approved?", /recorded AWS estimate is \$2\.93 per month and Terraform fixes the AWS budget at \$5\.00/i, "docs/evidence/aws-cost-estimate.md"],
+    ["How does budget enforcement work?", /budget|breaker/i, "docs/phase3-status.md"],
   ];
 
   for (const [question, expectedAnswer, source] of cases) {
