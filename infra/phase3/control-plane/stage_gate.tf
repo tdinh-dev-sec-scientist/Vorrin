@@ -1,10 +1,17 @@
 locals {
-  phase3_stage_acceptance   = jsondecode(file("${path.module}/../../../docs/evidence/phase3-stage-acceptance.json"))
-  phase3_stages             = try(local.phase3_stage_acceptance.stages, {})
-  phase3_stage1             = try(local.phase3_stages.stage1, {})
-  phase3_stage2             = try(local.phase3_stages.stage2, {})
-  phase3_stage3             = try(local.phase3_stages.stage3, {})
-  phase3_stage_schema_valid = try(local.phase3_stage_acceptance.schema_version == 3, false)
+  phase3_stage_acceptance = jsondecode(file("${path.module}/../../../docs/evidence/phase3-stage-acceptance.json"))
+  phase3_canonical_status = try(local.phase3_stage_acceptance.canonical_status, {})
+  phase3_canonical_stage1 = try(local.phase3_canonical_status.stage1, {})
+  phase3_canonical_stage2 = try(local.phase3_canonical_status.stage2, {})
+  phase3_canonical_stage3 = try(local.phase3_canonical_status.stage3, {})
+  phase3_stages           = try(local.phase3_stage_acceptance.deployment_gates, {})
+  phase3_stage1           = try(local.phase3_stages.stage1, {})
+  phase3_stage2           = try(local.phase3_stages.stage2, {})
+  phase3_stage3           = try(local.phase3_stages.stage3, {})
+  phase3_stage_schema_valid = try(
+    local.phase3_stage_acceptance.schema_version == 4 && length(keys(local.phase3_canonical_status)) == 4,
+    false
+  )
   phase3_stage3_guardrail_review = try(jsondecode(file(
     "${path.module}/../../../docs/evidence/stage3/guardrail-policy-review.json"
   )), {})
@@ -406,6 +413,9 @@ locals {
   )
 
   phase3_stage1_passed = local.phase3_stage_schema_valid && try(
+    local.phase3_canonical_stage1.status == "passed" &&
+    local.phase3_canonical_stage1.verification_scope == "private_aws_verification" &&
+    length(local.phase3_canonical_stage1.verification_evidence) > 0 &&
     local.phase3_stage1.status == "passed" &&
     trimspace(local.phase3_stage1.reviewed_by) != "" &&
     formatdate("YYYY", local.phase3_stage1.reviewed_at) != "" &&
@@ -438,6 +448,9 @@ locals {
   )
 
   phase3_stage2_passed = local.phase3_stage_schema_valid && try(
+    local.phase3_canonical_stage2.status == "passed" &&
+    local.phase3_canonical_stage2.verification_scope == "private_aws_verification" &&
+    length(local.phase3_canonical_stage2.verification_evidence) > 0 &&
     local.phase3_stage2.status == "passed" &&
     trimspace(local.phase3_stage2.reviewed_by) != "" &&
     formatdate("YYYY", local.phase3_stage2.reviewed_at) != "" &&
@@ -469,6 +482,9 @@ locals {
   )
 
   phase3_stage3_passed = local.phase3_stage_schema_valid && try(
+    local.phase3_canonical_stage3.status == "passed" &&
+    local.phase3_canonical_stage3.verification_scope == "private_aws_verification" &&
+    length(local.phase3_canonical_stage3.verification_evidence) > 0 &&
     local.phase3_stage3.status == "passed" &&
     trimspace(local.phase3_stage3.reviewed_by) != "" &&
     formatdate("YYYY", local.phase3_stage3.reviewed_at) != "" &&

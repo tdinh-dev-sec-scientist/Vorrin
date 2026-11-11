@@ -1,7 +1,8 @@
 locals {
-  aws_budget_name   = "${var.bucket_prefix}-phase3-monthly-aws"
-  budget_topic_name = "${var.bucket_prefix}-phase3-budget-kill"
-  kill_switch_name  = "${var.bucket_prefix}-phase3-kill-switch"
+  aws_budget_name       = "${var.bucket_prefix}-phase3-monthly-aws"
+  budget_topic_name     = "${var.bucket_prefix}-phase3-budget-kill"
+  kill_switch_name      = "${var.bucket_prefix}-phase3-kill-switch"
+  budget_kill_threshold = 4.5
 }
 
 resource "aws_sns_topic" "budget_kill" {
@@ -49,7 +50,13 @@ resource "aws_iam_role_policy" "kill_switch_runtime" {
   name  = "DisableOnlyPhase3RuntimeFlags"
   role  = aws_iam_role.kill_switch[0].id
   policy = templatefile("${path.module}/../policies/rin-kill-switch.json", {
-    feature_table_arn = aws_dynamodb_table.rin_feature[0].arn
+    feature_table_arn      = aws_dynamodb_table.rin_feature[0].arn
+    scan_schedule_arn      = try(aws_scheduler_schedule.scan[0].arn, "")
+    scan_state_machine_arn = try(aws_sfn_state_machine.scan[0].arn, "")
+    scan_execution_arn     = "arn:${data.aws_partition.current.partition}:states:${var.aws_region}:${data.aws_caller_identity.current.account_id}:execution:${var.bucket_prefix}-p3-scheduled-scan:*"
+    scan_cluster_arn       = try(aws_ecs_cluster.scan.arn, "")
+    scan_task_arn_pattern  = "arn:${data.aws_partition.current.partition}:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task/${local.scan_cluster_name}/*"
+    scheduler_role_arn     = try(aws_iam_role.scheduler[0].arn, "")
   })
 }
 
@@ -81,14 +88,17 @@ resource "aws_lambda_function" "kill_switch" {
   handler          = "phase3.kill_switch.lambda_handler"
   filename         = var.lambda_package_path
   source_code_hash = filebase64sha256(var.lambda_package_path)
-  timeout          = 15
+  timeout          = 60
   memory_size      = 256
   publish          = true
   depends_on       = [aws_iam_role_policy.kill_switch_runtime, aws_iam_role_policy.kill_switch_logs]
   environment {
     variables = {
-      PHASE3_FEATURE_TABLE         = aws_dynamodb_table.rin_feature[0].name
-      PHASE3_BUDGET_KILL_TOPIC_ARN = aws_sns_topic.budget_kill[0].arn
+      PHASE3_FEATURE_TABLE          = aws_dynamodb_table.rin_feature[0].name
+      PHASE3_BUDGET_KILL_TOPIC_ARN  = aws_sns_topic.budget_kill[0].arn
+      PHASE3_SCAN_SCHEDULE_NAME     = try(aws_scheduler_schedule.scan[0].name, "")
+      PHASE3_SCAN_STATE_MACHINE_ARN = try(aws_sfn_state_machine.scan[0].arn, "")
+      PHASE3_SCAN_ECS_CLUSTER_ARN   = try(aws_ecs_cluster.scan.arn, "")
     }
   }
 }
@@ -114,7 +124,7 @@ resource "aws_budgets_budget" "monthly_aws" {
   count        = var.enable_stage4 ? 1 : 0
   name         = local.aws_budget_name
   budget_type  = "COST"
-  limit_amount = tostring(var.monthly_budget_usd)
+  limit_amount = format("%.2f", var.monthly_budget_usd)
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
   cost_types {
@@ -147,10 +157,42 @@ resource "aws_budgets_budget" "monthly_aws" {
   }
   notification {
     comparison_operator        = "GREATER_THAN"
-    threshold                  = 100
-    threshold_type             = "PERCENTAGE"
+    threshold                  = local.budget_kill_threshold
+    threshold_type             = "ABSOLUTE_VALUE"
     notification_type          = "ACTUAL"
     subscriber_email_addresses = [var.budget_alert_email]
     subscriber_sns_topic_arns  = [aws_sns_topic.budget_kill[0].arn]
   }
+  notification {
+    comparison_operator        = "EQUAL_TO"
+    threshold                  = local.budget_kill_threshold
+    threshold_type             = "ABSOLUTE_VALUE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.budget_alert_email]
+    subscriber_sns_topic_arns  = [aws_sns_topic.budget_kill[0].arn]
+  }
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = local.budget_kill_threshold
+    threshold_type             = "ABSOLUTE_VALUE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.budget_alert_email]
+    subscriber_sns_topic_arns  = [aws_sns_topic.budget_kill[0].arn]
+  }
+  notification {
+    comparison_operator        = "EQUAL_TO"
+    threshold                  = local.budget_kill_threshold
+    threshold_type             = "ABSOLUTE_VALUE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.budget_alert_email]
+    subscriber_sns_topic_arns  = [aws_sns_topic.budget_kill[0].arn]
+  }
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.budget_alert_email]
+  }
 }
+

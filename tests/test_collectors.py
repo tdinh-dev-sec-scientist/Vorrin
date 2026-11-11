@@ -19,6 +19,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from auditor.collectors import _common, cloudtrail, iam, s3
+from auditor.rules import cloudtrail_rules
 
 # ------------------------------------------------------------------- stubs --
 
@@ -349,11 +350,25 @@ def test_cloudtrail_collector_merges_configuration_and_status():
     assert trail["latest_delivery_error"] is None
 
 
-def test_denied_describe_trails_marks_trails_unreadable():
-    client = StubClient({"describe_trails": client_error("AccessDenied")})
+@pytest.mark.parametrize(
+    ("code", "category"),
+    [("AccessDenied", "access_denied"), ("ThrottlingException", "throttled")],
+)
+def test_describe_trails_failures_are_explicit_and_do_not_emit_false_positives(code, category):
+    client = StubClient({"describe_trails": client_error(code)})
     data = cloudtrail.collect(StubSession({"cloudtrail": client}), {})
-    assert data["trails_readable"] is False and data["trails"] == []
-    assert data["errors"][0]["required_permissions"] == ["cloudtrail:DescribeTrails"]
+
+    assert data["trails_readable"] is False
+    assert data["trails"] == []
+    assert data["errors"][0]["code"] == code
+    assert data["errors"][0]["category"] == category
+    if code == "AccessDenied":
+        assert data["errors"][0]["required_permissions"] == ["cloudtrail:DescribeTrails"]
+    else:
+        assert "required_permissions" not in data["errors"][0]
+
+    findings = cloudtrail_rules.evaluate(data, {}, run_id="failed-collection")
+    assert all(finding.rule_id != "CT-001" for finding in findings)
 
 
 def test_denied_trail_status_leaves_logging_unknown_but_keeps_the_trail():
@@ -368,10 +383,69 @@ def test_denied_trail_status_leaves_logging_unknown_but_keeps_the_trail():
     assert data["trails"][0]["log_file_validation_enabled"] is False  # config still read
 
 
-def test_shadow_trails_are_excluded_so_one_trail_is_not_counted_many_times():
-    client = StubClient({"describe_trails": {"trailList": []}, "get_trail_status": {"IsLogging": True}})
-    cloudtrail.collect(StubSession({"cloudtrail": client}), {})
-    assert client.calls[0] == ("describe_trails", {"includeShadowTrails": False})
+def test_shadow_trails_keep_multiregion_trail_visible_outside_home_region():
+    shadow = {
+        "Name": "org-trail",
+        "TrailARN": "arn:aws:cloudtrail:us-east-1:123456789012:trail/org-trail",
+        "HomeRegion": "us-east-1",
+        "IsMultiRegionTrail": True,
+        "LogFileValidationEnabled": True,
+    }
+    client = StubClient(
+        {
+            "describe_trails": {"trailList": [shadow]},
+            "get_trail_status": {"IsLogging": True},
+        }
+    )
+    session = StubSession({"cloudtrail": client})
+    session.region_name = "us-east-2"
+
+    data = cloudtrail.collect(session, {})
+
+    assert client.calls[0] == ("describe_trails", {"includeShadowTrails": True})
+    assert data["region"] == "us-east-2"
+    assert len(data["trails"]) == 1
+    assert data["trails"][0]["home_region"] == "us-east-1"
+    assert data["trails"][0]["is_multi_region"] is True
+    findings = cloudtrail_rules.evaluate(data, {}, run_id="shadow")
+    assert {finding.rule_id for finding in findings}.isdisjoint({"CT-001", "CT-002"})
+
+
+def test_duplicate_shadow_trails_are_deduplicated_deterministically():
+    first = {
+        "Name": "trail-a",
+        "TrailARN": "arn:aws:cloudtrail:us-east-1:123456789012:trail/trail-a",
+        "HomeRegion": "us-east-1",
+        "IsMultiRegionTrail": True,
+        "LogFileValidationEnabled": False,
+    }
+    duplicate = {**first, "LogFileValidationEnabled": True}
+    second = {
+        "Name": "trail-b",
+        "TrailARN": "arn:aws:cloudtrail:us-east-1:123456789012:trail/trail-b",
+        "HomeRegion": "us-east-1",
+        "IsMultiRegionTrail": True,
+        "LogFileValidationEnabled": True,
+    }
+
+    def collect(raw_trails):
+        client = StubClient(
+            {
+                "describe_trails": {"trailList": raw_trails},
+                "get_trail_status": {"IsLogging": True},
+            }
+        )
+        data = cloudtrail.collect(StubSession({"cloudtrail": client}), {})
+        status_calls = [call for call in client.calls if call[0] == "get_trail_status"]
+        return data, status_calls
+
+    forward, forward_status_calls = collect([second, duplicate, first])
+    reverse, reverse_status_calls = collect([first, second, duplicate])
+
+    assert forward["trails"] == reverse["trails"]
+    assert [trail["name"] for trail in forward["trails"]] == ["trail-a", "trail-b"]
+    assert len(forward["trails"]) == 2
+    assert len(forward_status_calls) == len(reverse_status_calls) == 2
 
 
 # ------------------------------------------- emulated AWS (real boto3) ------

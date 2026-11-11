@@ -2,6 +2,9 @@
 
 [![CI](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/ci.yml/badge.svg)](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/ci.yml)
 [![IaC guardrails](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/iac-guardrails.yml/badge.svg)](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/iac-guardrails.yml)
+<!-- BEGIN GENERATED PHASE 3 BADGE -->
+![Phase 3 status: UNVERIFIED / PENDING EXTERNAL CONFIRMATION](https://img.shields.io/badge/Phase%203-UNVERIFIED%20%2F%20PENDING%20EXTERNAL%20CONFIRMATION-yellow)
+<!-- END GENERATED PHASE 3 BADGE -->
 ![Python 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -192,23 +195,25 @@ generated evidence with `python scripts/collect_metrics.py`.
 
 <!-- END GENERATED METRICS -->
 
-## Live deployment status
+<!-- BEGIN GENERATED PHASE 3 STATUS -->
+## Phase 3 deployment status
 
-Phase 3 is deployed to a dedicated AWS Organizations demo account in stages.
-Each stage turns on only after the previous one has reviewed acceptance
-evidence in [`docs/evidence/`](docs/evidence/phase3-stage-acceptance.json);
-Terraform refuses to enable it otherwise.
+The stage summaries below are generated from the
+[canonical status manifest](docs/evidence/phase3-stage-acceptance.json).
 
-| Stage | Scope | Status |
-| --- | --- | --- |
-| 1 | Scheduled scans: EventBridge Scheduler every six hours, Step Functions, a cosign-signed Fargate scan image, a read-only cross-account role, private snapshots, drift history | Live; acceptance passed (two consecutive scheduled scans with reviewed drift) |
-| 2 | Redacted results and the public read-only API | Live; acceptance passed (redaction cases, publisher-failure atomicity, API methods) |
-| 3 | Invite-only console with Cognito sign-in (MFA, PKCE), and Rin | **Passed 2026-11-08.** Console at a custom domain (TLS 1.2+ only); Rin live for invited users on Claude Haiku via Amazon Bedrock behind a published Guardrail; evidence in [docs/evidence/stage3](docs/evidence/stage3/README.md) |
-| 4 | Budget cutoff, kill switch, and load tests | Waiting on Stage 3 |
+| Stage | Scope | Canonical status | Verification note |
+| --- | --- | --- | --- |
+| 1 | Demo account and scans | PASSED (Offline Fixtures & Moto Benchmarks) | Offline fixtures and Moto-backed Phase 3 benchmark tests pass. This verifies repository behavior only, not a deployed AWS account. |
+| 2 | Redaction, publication, and API | PASSED (Offline Fixtures & Moto Benchmarks) | Offline redaction, publication, and API behavior checks pass with fixtures and Moto. This does not confirm a live AWS publication path. |
+| 3 | Website and Rin | UNVERIFIED / PENDING EXTERNAL CONFIRMATION | Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending. |
+| 4 | Load, cost controls, and operational resilience | PENDING (Load & Operational Resilience Benchmarks) | Load and operational resilience benchmarks, budget-cutoff and recovery rehearsal, and actual-cost evidence remain outstanding. |
 
-Deployments run through GitHub OIDC roles pinned to protected environments,
-with a permissions boundary on every role Terraform creates and an SCP that
-protects the audit trail and the read-only role.
+No private AWS verification is recorded for Stage 3. Offline passes for Stages 1–2 do not establish that AWS resources were deployed. The public GitHub Pages site remains a static Moto/fixture
+replay and does not connect to AWS or an AI provider. Terraform deployment
+acceptance is tracked separately in the same manifest and requires private
+AWS evidence.
+
+<!-- END GENERATED PHASE 3 STATUS -->
 
 ## Security and scope
 
@@ -220,9 +225,10 @@ protects the audit trail and the read-only role.
   permissions or prove exploitability.
 - The public demo is hosted on GitHub Pages with HTTPS. It has no application
   server, inbound listener, or project-managed firewall.
-- The Phase 3 live deployment defaults to invite-only access: Cognito sign-in
+- The Phase 3 deployment design defaults to invite-only access: Cognito sign-in
   with mandatory MFA and PKCE, an authorizer on every API method, and per-user
-  Rin quotas. See [private access](docs/private-access.md).
+  Rin quotas. Live AWS access is not independently verified. See
+  [private access](docs/private-access.md).
 
 See [SECURITY.md](SECURITY.md) to report a vulnerability and
 [docs/threat-model.md](docs/threat-model.md) for the threat model.
@@ -264,7 +270,7 @@ scanners. See [IaC scanning](docs/iac-scanning.md) for local scanner setup and
   policy shape alone.
 - Add checks for more services, such as EC2 security groups and KMS key
   policies.
-- Complete live acceptance of Phase 3 Stages 2 to 4.
+- Complete live acceptance of Phase 3 Stage 4.
 
 ## Documentation
 

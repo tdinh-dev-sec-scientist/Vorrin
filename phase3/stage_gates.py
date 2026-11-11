@@ -98,6 +98,52 @@ _SHA256 = re.compile(r"^[a-f0-9]{64}$")
 _GUARDRAIL_VERSION = re.compile(r"^[1-9][0-9]{0,7}$")
 
 
+def _validate_canonical_status(value: Any) -> None:
+    if not isinstance(value, dict) or set(value) != set(STAGE_CRITERIA):
+        raise StageGateError("canonical Phase 3 status does not match the stage plan")
+    allowed = {
+        "stage1": {
+            ("passed", "offline_fixtures_and_moto"),
+            ("passed", "private_aws_verification"),
+        },
+        "stage2": {
+            ("passed", "offline_fixtures_and_moto"),
+            ("passed", "private_aws_verification"),
+        },
+        "stage3": {
+            ("unverified", "pending_external_confirmation"),
+            ("passed", "private_aws_verification"),
+        },
+        "stage4": {
+            ("pending", "load_and_operational_resilience"),
+            ("passed", "private_aws_verification"),
+        },
+    }
+    for stage_name, record in value.items():
+        fields = {"status", "verification_scope", "summary", "verification_evidence"}
+        if not isinstance(record, dict) or set(record) != fields:
+            raise StageGateError(f"{stage_name} canonical status does not match its schema")
+        if (record["status"], record["verification_scope"]) not in allowed[stage_name]:
+            raise StageGateError(f"{stage_name} canonical status or verification scope is invalid")
+        if (
+            not isinstance(record["summary"], str)
+            or not record["summary"].strip()
+            or len(record["summary"]) > 500
+        ):
+            raise StageGateError(f"{stage_name} canonical summary is invalid")
+        evidence = record["verification_evidence"]
+        if (
+            not isinstance(evidence, list)
+            or len(evidence) > 20
+            or any(not isinstance(item, str) or not item.strip() or len(item) > 300 for item in evidence)
+        ):
+            raise StageGateError(f"{stage_name} canonical verification evidence is invalid")
+        if record["status"] == "passed" and not evidence:
+            raise StageGateError(f"passed {stage_name} requires verification evidence")
+        if record["status"] != "passed" and evidence:
+            raise StageGateError(f"unverified or pending {stage_name} cannot claim verification evidence")
+
+
 class StageGateError(ValueError):
     """A requested stage has no complete, reviewed predecessor evidence."""
 
@@ -569,18 +615,19 @@ def validate_stage_gates(
         raise StageGateError("Phase 3 stage acceptance manifest is missing or invalid") from None
     if (
         not isinstance(manifest, dict)
-        or set(manifest) != {"schema_version", "stages"}
+        or set(manifest) != {"schema_version", "canonical_status", "deployment_gates"}
         or type(manifest.get("schema_version")) is not int
-        or manifest.get("schema_version") != 3
-        or not isinstance(manifest.get("stages"), dict)
-        or set(manifest["stages"]) != set(STAGE_CRITERIA)
+        or manifest.get("schema_version") != 4
+        or not isinstance(manifest.get("deployment_gates"), dict)
+        or set(manifest["deployment_gates"]) != set(STAGE_CRITERIA)
     ):
         raise StageGateError("Phase 3 stage acceptance manifest does not match its schema")
 
+    _validate_canonical_status(manifest["canonical_status"])
     accepted = {
         name: _validate_stage_record(
             name,
-            manifest["stages"][name],
+            manifest["deployment_gates"][name],
             root=repository_root,
             expected_demo_account_id_sha256=expected_demo_account_id_sha256,
             expected_daily_invocation_limit=expected_daily_invocation_limit,
@@ -591,6 +638,15 @@ def validate_stage_gates(
         for name in STAGE_CRITERIA
     }
     for stage_name, passed in accepted.items():
+        canonical_record = manifest["canonical_status"][stage_name]
+        privately_verified = (
+            canonical_record["status"] == "passed"
+            and canonical_record["verification_scope"] == "private_aws_verification"
+        )
+        if passed != privately_verified:
+            raise StageGateError(
+                f"{stage_name} canonical status conflicts with its deployment acceptance gate"
+            )
         stage_number = _STAGE_NUMBER[stage_name]
         if passed and any(not accepted[f"stage{previous}"] for previous in range(1, stage_number)):
             raise StageGateError(f"{stage_name} cannot pass before every preceding stage")

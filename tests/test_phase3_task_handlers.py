@@ -253,7 +253,14 @@ def test_snapshot_writer_hides_session_failures():
 
 
 def test_kill_switch_handler_requires_configuration(monkeypatch):
-    for name in ("PHASE3_BUDGET_KILL_TOPIC_ARN", "PHASE3_FEATURE_TABLE", "AWS_REGION"):
+    for name in (
+        "PHASE3_BUDGET_KILL_TOPIC_ARN",
+        "PHASE3_FEATURE_TABLE",
+        "PHASE3_SCAN_SCHEDULE_NAME",
+        "PHASE3_SCAN_STATE_MACHINE_ARN",
+        "PHASE3_SCAN_ECS_CLUSTER_ARN",
+        "AWS_REGION",
+    ):
         monkeypatch.delenv(name, raising=False)
 
     with pytest.raises(KillSwitchError, match="not configured"):
@@ -281,11 +288,78 @@ def test_kill_switch_handler_disables_live_features(monkeypatch):
         BillingMode="PAY_PER_REQUEST",
     )
     table.put_item(Item={"pk": "PLATFORM", "sk": "CONFIG", "rin_enabled": True, "static_mode": False})
+
+    schedule_name = "phase3-scan"
+    state_machine_arn = "arn:aws:states:us-east-1:123456789012:stateMachine:phase3-scan"
+    cluster_arn = "arn:aws:ecs:us-east-1:123456789012:cluster/phase3-scan"
+
+    class Scheduler:
+        def __init__(self):
+            self.updated = None
+
+        def get_schedule(self, **kwargs):
+            assert kwargs == {"Name": schedule_name, "GroupName": "default"}
+            return {
+                "State": "ENABLED",
+                "ScheduleExpression": "rate(1 day)",
+                "FlexibleTimeWindow": {"Mode": "OFF"},
+                "Target": {
+                    "Arn": state_machine_arn,
+                    "RoleArn": "arn:aws:iam::123456789012:role/phase3-scheduler",
+                },
+            }
+
+        def update_schedule(self, **kwargs):
+            self.updated = kwargs
+
+    class StepFunctions:
+        def __init__(self):
+            self.list_request = None
+
+        def list_executions(self, **kwargs):
+            self.list_request = kwargs
+            return {"executions": []}
+
+    class ECS:
+        def __init__(self):
+            self.list_request = None
+
+        def list_tasks(self, **kwargs):
+            self.list_request = kwargs
+            return {"taskArns": []}
+
+    scheduler = Scheduler()
+    stepfunctions = StepFunctions()
+    ecs = ECS()
+
+    class Session:
+        def __init__(self, *, region_name):
+            assert region_name == "us-east-1"
+
+        def resource(self, service_name):
+            assert service_name == "dynamodb"
+            return type("DynamoDBResource", (), {"Table": lambda _self, _name: table})()
+
+        def client(self, service_name):
+            return {
+                "scheduler": scheduler,
+                "stepfunctions": stepfunctions,
+                "ecs": ecs,
+            }[service_name]
+
+    monkeypatch.setattr(kill_switch.boto3.session, "Session", Session)
     monkeypatch.setenv("PHASE3_BUDGET_KILL_TOPIC_ARN", TOPIC)
     monkeypatch.setenv("PHASE3_FEATURE_TABLE", "phase3-features")
+    monkeypatch.setenv("PHASE3_SCAN_SCHEDULE_NAME", schedule_name)
+    monkeypatch.setenv("PHASE3_SCAN_STATE_MACHINE_ARN", state_machine_arn)
+    monkeypatch.setenv("PHASE3_SCAN_ECS_CLUSTER_ARN", cluster_arn)
     monkeypatch.setenv("AWS_REGION", "us-east-1")
 
     assert kill_switch.lambda_handler(_event(), None) == {"status": "DISABLED"}
     item = table.get_item(Key={"pk": "PLATFORM", "sk": "CONFIG"})["Item"]
     assert item["rin_enabled"] is False
     assert item["static_mode"] is True
+    assert scheduler.updated["State"] == "DISABLED"
+    assert stepfunctions.list_request["stateMachineArn"] == state_machine_arn
+    assert stepfunctions.list_request["statusFilter"] == "RUNNING"
+    assert ecs.list_request == {"cluster": cluster_arn, "desiredStatus": "RUNNING"}

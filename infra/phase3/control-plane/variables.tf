@@ -85,13 +85,13 @@ variable "scan_container_image" {
 }
 
 variable "monthly_budget_usd" {
-  description = "Owner-set monthly AWS budget. Required to enable Phase 4 budget alerts."
+  description = "Fixed monthly AWS budget ceiling; it must be exactly $5.00."
   type        = number
-  default     = null
-  nullable    = true
+  default     = 5.0
+  nullable    = false
   validation {
-    condition     = try(var.monthly_budget_usd > 0, var.monthly_budget_usd == null)
-    error_message = "monthly_budget_usd must be positive when supplied."
+    condition     = var.monthly_budget_usd == 5.0
+    error_message = "monthly_budget_usd must equal $5.00."
   }
 }
 
@@ -120,7 +120,7 @@ variable "provider_monthly_budget_usd" {
 }
 
 variable "budget_alert_email" {
-  description = "Owner-managed recipient for the 50%, 80%, and 100% actual monthly AWS budget alerts."
+  description = "Owner-managed recipient for percentage alerts and the $4.50 actual/forecast circuit-breaker alerts."
   type        = string
   default     = ""
   validation {

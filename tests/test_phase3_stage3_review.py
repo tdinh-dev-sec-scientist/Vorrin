@@ -49,7 +49,10 @@ def _write(path: Path, value) -> str:
 
 @pytest.fixture
 def workspace(tmp_path):
-    shutil.copytree(ROOT / "docs/evidence", tmp_path / "docs/evidence")
+    from tests.test_phase3_stage_gates import _write_manifest
+
+    predecessor_manifest = _write_manifest(tmp_path / "predecessors", accepted={"stage1", "stage2"})
+    shutil.copytree(predecessor_manifest.parent, tmp_path / "docs/evidence")
     evidence = tmp_path / "docs/evidence/stage3"
     for name in ("guardrail-policy-review.json", "bedrock-logging-review.json"):
         (evidence / name).unlink(missing_ok=True)
@@ -193,8 +196,11 @@ def test_confirmed_review_passes_the_stage3_gate(workspace):
     root, drafts = workspace
     review.record_review(root, drafts, "Reviewer", confirm=True, reviewed_at=REVIEWED_AT)
     manifest = json.loads((root / "docs/evidence/phase3-stage-acceptance.json").read_text())
-    record = manifest["stages"]["stage3"]
+    record = manifest["deployment_gates"]["stage3"]
     assert record["status"] == "passed" and all(record["criteria"].values())
+    canonical = manifest["canonical_status"]["stage3"]
+    assert canonical["status"] == "passed"
+    assert canonical["verification_scope"] == "private_aws_verification"
     assert _validate_stage_record(
         "stage3",
         record,

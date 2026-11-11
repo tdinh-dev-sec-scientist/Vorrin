@@ -4,12 +4,12 @@ locals {
   github_plan_subject      = "repo:${var.github_subject_repository}:environment:${var.github_plan_environment}"
   github_apply_subject     = "repo:${var.github_subject_repository}:environment:${var.github_apply_environment}"
   github_oidc_provider_arn = "arn:${data.aws_partition.current.partition}:iam::${var.demo_account_id}:oidc-provider/token.actions.githubusercontent.com"
+  trail_bucket_arn         = "arn:${data.aws_partition.current.partition}:s3:::${var.bucket_prefix}-p3-trail-${var.demo_account_id}"
   demo_bucket_arns = [
     "arn:${data.aws_partition.current.partition}:s3:::${var.bucket_prefix}-p3-demo-a-${var.demo_account_id}",
     "arn:${data.aws_partition.current.partition}:s3:::${var.bucket_prefix}-p3-demo-b-${var.demo_account_id}",
     "arn:${data.aws_partition.current.partition}:s3:::${var.bucket_prefix}-p3-trail-${var.demo_account_id}",
   ]
-  demo_object_arns  = [for arn in local.demo_bucket_arns : "${arn}/*"]
   target_role_arn   = "arn:${data.aws_partition.current.partition}:iam::${var.demo_account_id}:role/AccountAccessAuditorReadOnly"
   target_policy_arn = "arn:${data.aws_partition.current.partition}:iam::${var.demo_account_id}:policy/AccountAccessAuditorReadOnly"
   trail_arn         = "arn:${data.aws_partition.current.partition}:cloudtrail:${var.aws_region}:${var.demo_account_id}:trail/${var.bucket_prefix}-phase3-demo-management"
@@ -112,6 +112,12 @@ resource "aws_iam_role_policy" "terraform_plan" {
         Resource = "*"
       },
       {
+        Sid      = "DenyPublicAccessBlockMutations"
+        Effect   = "Deny"
+        Action   = ["s3:PutAccountPublicAccessBlock", "s3:PutBucketPublicAccessBlock"]
+        Resource = "*"
+      },
+      {
         Sid      = "ReadAccountPublicAccessBlock"
         Effect   = "Allow"
         Action   = "s3:GetAccountPublicAccessBlock"
@@ -194,9 +200,15 @@ resource "aws_iam_role_policy" "terraform_apply" {
         Resource = "*"
       },
       {
+        Sid      = "DenyPublicAccessBlockMutations"
+        Effect   = "Deny"
+        Action   = ["s3:PutAccountPublicAccessBlock", "s3:PutBucketPublicAccessBlock"]
+        Resource = "*"
+      },
+      {
         Sid      = "ReadAccountPublicAccessBlock"
         Effect   = "Allow"
-        Action   = ["s3:GetAccountPublicAccessBlock", "s3:PutAccountPublicAccessBlock"]
+        Action   = "s3:GetAccountPublicAccessBlock"
         Resource = "*"
       },
       {
@@ -207,12 +219,16 @@ resource "aws_iam_role_policy" "terraform_apply" {
           "s3:PutBucketTagging",
           "s3:PutEncryptionConfiguration",
           "s3:PutBucketOwnershipControls",
-          "s3:PutBucketPublicAccessBlock",
           "s3:PutBucketVersioning",
-          "s3:PutLifecycleConfiguration",
-          "s3:PutBucketPolicy"
+          "s3:PutLifecycleConfiguration"
         ]
-        Resource = concat(local.demo_bucket_arns, local.demo_object_arns)
+        Resource = local.demo_bucket_arns
+      },
+      {
+        Sid      = "ManageOnlyCloudTrailBucketPolicy"
+        Effect   = "Allow"
+        Action   = "s3:PutBucketPolicy"
+        Resource = local.trail_bucket_arn
       },
       {
         Sid      = "CreateTargetRoleWithReadOnlyPermissionsBoundary"
@@ -279,3 +295,4 @@ resource "aws_iam_role_policy" "terraform_apply" {
     ]
   })
 }
+

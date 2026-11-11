@@ -1,13 +1,13 @@
 """CloudTrail rules.
 
-  CT-001  No trail configured                     HIGH
+  CT-001  No trail covers the evaluated region     HIGH
   CT-002  No multi-region trail                    MEDIUM
   CT-003  Log file validation disabled             MEDIUM
   CT-004  Trail not logging / delivery failing     HIGH
 
-CT-001/CT-002 are account-level: they describe the trail estate as a whole.
-CT-003/CT-004 are per-trail. The split matters because remediation differs --
-one is "create a trail", the other is "fix this trail".
+CT-001 checks coverage for the current regional scan; CT-002 describes the
+account's trail estate. CT-003/CT-004 are per-trail. The split matters because
+remediation differs -- one is "create a trail", the other is "fix this trail".
 """
 
 from __future__ import annotations
@@ -30,23 +30,38 @@ def evaluate(data: dict[str, Any], config: dict[str, Any], run_id: str | None = 
 
     trails = data.get("trails", []) or []
     findings: list[Finding] = []
+    region = data.get("region")
+    covering_trails = [trail for trail in trails if _trail_covers_region(trail, region)]
+
+    if not covering_trails and settings.get("require_trail", True):
+        findings.append(
+            Finding.build(
+                "CT-001",
+                resource=ACCOUNT_RESOURCE,
+                description=(
+                    f"No CloudTrail trail covers the evaluated region ({region or 'unknown'}). "
+                    "Management-event history is therefore not being retained in a "
+                    "durable, tamper-evident form; the console Event history view keeps "
+                    "only 90 days and is not usable as incident evidence."
+                ),
+                evidence={
+                    "trail_count": len(trails),
+                    "covering_trail_count": 0,
+                    "region": region,
+                    "trails": [
+                        {
+                            "name": trail.get("name"),
+                            "home_region": trail.get("home_region"),
+                            "is_multi_region": trail.get("is_multi_region"),
+                        }
+                        for trail in trails
+                    ],
+                },
+                run_id=run_id,
+            )
+        )
 
     if not trails:
-        if settings.get("require_trail", True):
-            findings.append(
-                Finding.build(
-                    "CT-001",
-                    resource=ACCOUNT_RESOURCE,
-                    description=(
-                        "DescribeTrails returned no trails for this account and region. "
-                        "Management-event history is therefore not being retained in a "
-                        "durable, tamper-evident form; the console Event history view keeps "
-                        "only 90 days and is not usable as incident evidence."
-                    ),
-                    evidence={"trail_count": 0, "region": data.get("region")},
-                    run_id=run_id,
-                )
-            )
         return findings
 
     findings.extend(_multi_region_rule(trails, settings, data, run_id))
@@ -56,6 +71,19 @@ def evaluate(data: dict[str, Any], config: dict[str, Any], run_id: str | None = 
         findings.extend(_logging_status_rule(trail, settings, run_id))
 
     return findings
+
+
+def _trail_covers_region(trail: dict[str, Any], region: str | None) -> bool:
+    """Return whether trail evidence covers the evaluated region.
+
+    A multi-region trail covers the region regardless of its home region.
+    Single-region trails cover only their HomeRegion. If either region is
+    unknown, retain the trail as evidence and avoid a false positive.
+    """
+    if trail.get("is_multi_region"):
+        return True
+    home_region = trail.get("home_region")
+    return region is None or home_region is None or home_region == region
 
 
 def _multi_region_rule(trails, settings, data, run_id) -> list[Finding]:

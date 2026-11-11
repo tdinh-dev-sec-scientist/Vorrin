@@ -41,7 +41,7 @@ from phase3.stage_gates import (  # noqa: E402
     STAGE3_MAX_PROMPT_RETENTION_DAYS,
     STAGE_REQUIRED_EVIDENCE,
     StageGateError,
-    _validate_stage_record,
+    validate_stage_gates,
 )
 
 DRAFT_NAMES = (
@@ -217,22 +217,27 @@ def write(root: Path, files: dict[str, bytes], record: dict[str, Any]) -> None:
         target.write_bytes(data)
     manifest_path = root / "docs/evidence/phase3-stage-acceptance.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["stages"]["stage3"] = record
+    manifest["deployment_gates"]["stage3"] = record
+    manifest["canonical_status"]["stage3"] = {
+        "status": "passed",
+        "verification_scope": "private_aws_verification",
+        "summary": "Private AWS verification was reviewed and recorded for Stage 3.",
+        "verification_evidence": ["docs/evidence/stage3/ reviewed artifacts bound by SHA-256."],
+    }
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
 def check(root: Path, record: dict[str, Any], quota: dict[str, Any]) -> None:
     try:
-        _validate_stage_record(
-            "stage3",
-            record,
+        validate_stage_gates(
+            root / "docs/evidence/phase3-stage-acceptance.json",
             root=root,
+            enabled_stages=set(),
             expected_daily_invocation_limit=quota["daily_invocation_limit"],
             expected_monthly_budget_usd=quota["monthly_budget_usd"],
-            require_runtime_bindings=True,
         )
     except StageGateError as exc:
-        raise ReviewError(f"the Stage 3 gate rejects this evidence: {exc}") from None
+        raise ReviewError(f"Stage 3 gate rejects this evidence or its prerequisites: {exc}") from None
 
 
 def record_review(
@@ -294,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     print(
-        f"\nWrote {len(files)} review files and marked Stage 3 passed in docs/evidence/phase3-stage-acceptance.json."
+        f"\nWrote {len(files)} review files and marked Stage 3 as privately verified in docs/evidence/phase3-stage-acceptance.json."
     )
     return 0
 

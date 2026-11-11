@@ -253,7 +253,7 @@ def build_documents(
 def update_manifest(
     manifest: dict[str, Any], files: dict[str, bytes], reviewer: str, reviewed_at: str
 ) -> None:
-    manifest["stages"]["stage2"] = {
+    manifest["deployment_gates"]["stage2"] = {
         "status": "passed",
         "reviewed_by": reviewer,
         "reviewed_at": reviewed_at,
@@ -264,6 +264,12 @@ def update_manifest(
         },
         "evidence": list(FILES),
         "evidence_sha256": {path: _sha(body) for path, body in files.items()},
+    }
+    manifest["canonical_status"]["stage2"] = {
+        "status": "passed",
+        "verification_scope": "private_aws_verification",
+        "summary": "Private AWS verification was reviewed and recorded for Stage 2.",
+        "verification_evidence": ["Stage 2 reviewed artifacts are bound by SHA-256."],
     }
 
 
@@ -434,7 +440,7 @@ def main() -> int:
     update_manifest(manifest, files, args.reviewer, reviewed_at)
     MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     try:
-        validate_stage_evidence("stage2", manifest["stages"]["stage2"], evidence_root=EVIDENCE)
+        validate_stage_evidence("stage2", manifest["deployment_gates"]["stage2"], evidence_root=EVIDENCE)
     except StageEvidenceError as exc:
         print(f"error: written evidence does not validate: {exc}", file=sys.stderr)
         return 1

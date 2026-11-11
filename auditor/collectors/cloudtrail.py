@@ -7,6 +7,7 @@ makes both calls and keeps the answers in separate fields.
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -34,9 +35,9 @@ def collect(session, config: dict[str, Any] | None = None) -> dict[str, Any]:
 
     log.info("Starting CloudTrail collection")
     try:
-        # Shadow trails are replicas of multi-region trails from other regions;
-        # including them would double-count one trail as several.
-        response = client.describe_trails(includeShadowTrails=False)
+        # Include shadow trails so a multi-region trail remains visible outside
+        # its home region during per-region fleet scans.
+        response = client.describe_trails(includeShadowTrails=True)
     except AWS_EXCEPTIONS as exc:
         record_error(
             errors,
@@ -47,11 +48,41 @@ def collect(session, config: dict[str, Any] | None = None) -> dict[str, Any]:
         )
         return {"trails": [], "errors": errors, "trails_readable": False, "region": region}
 
-    for raw in response.get("trailList", []):
+    raw_trails = _deduplicate_trails(response.get("trailList", []), region)
+    for raw in raw_trails:
         trails.append(_collect_trail(client, raw, errors))
 
     log.info("CloudTrail collection complete: %d trails", len(trails))
     return {"trails": trails, "errors": errors, "trails_readable": True, "region": region}
+
+
+def _deduplicate_trails(raw_trails: list[dict[str, Any]], region: str | None):
+    """Return one stable representative for each TrailARN/HomeRegion pair.
+
+    AWS can include the same multi-region trail more than once when shadow
+    trails are requested. Sort before selecting a representative so API
+    response ordering cannot change the collected result.
+    """
+    ordered = sorted(
+        raw_trails,
+        key=lambda raw: (
+            str(raw.get("TrailARN") or raw.get("Name") or ""),
+            str(raw.get("HomeRegion") or region or ""),
+            json.dumps(raw, sort_keys=True, separators=(",", ":"), default=str),
+        ),
+    )
+    seen: set[tuple[str, str]] = set()
+    unique: list[dict[str, Any]] = []
+    for raw in ordered:
+        identity = (
+            str(raw.get("TrailARN") or raw.get("Name") or ""),
+            str(raw.get("HomeRegion") or region or ""),
+        )
+        if identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(raw)
+    return unique
 
 
 def _collect_trail(client, raw: dict[str, Any], errors) -> dict[str, Any]:

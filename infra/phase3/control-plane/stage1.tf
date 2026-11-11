@@ -660,6 +660,10 @@ resource "aws_scheduler_schedule" "scan" {
   schedule_expression          = "rate(6 hours)"
   schedule_expression_timezone = "UTC"
   state                        = var.scan_schedule_enabled ? "ENABLED" : "DISABLED"
+  lifecycle {
+    # The budget breaker disables this out of band; routine applies preserve the latch.
+    ignore_changes = [state]
+  }
   flexible_time_window { mode = "OFF" }
   target {
     arn      = aws_sfn_state_machine.scan[0].arn

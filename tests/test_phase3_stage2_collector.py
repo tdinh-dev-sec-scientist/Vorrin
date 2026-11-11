@@ -1,6 +1,7 @@
 import hashlib
 import json
 import urllib.parse
+from pathlib import Path
 
 import pytest
 
@@ -8,6 +9,7 @@ from phase3.stage_evidence import validate_stage_evidence
 from scripts import collect_phase3_stage2_evidence as stage2
 from scripts import phase3_id_token as token_tool
 
+ROOT = Path(__file__).resolve().parents[1]
 REVIEWED_AT = "2026-11-06T19:00:00-05:00"
 CATEGORIES = sorted(
     ["account_id", "arn", "ip_address", "email", "access_key", "unknown_field", "stable_pseudonym"]
@@ -36,9 +38,10 @@ def test_generated_evidence_passes_the_stage2_validator(tmp_path):
     for path, body in files.items():
         (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / path).write_bytes(body)
-    manifest = {"stages": {}}
+    manifest = json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text())
     stage2.update_manifest(manifest, files, "Reviewer", REVIEWED_AT)
-    validate_stage_evidence("stage2", manifest["stages"]["stage2"], evidence_root=tmp_path)
+    validate_stage_evidence("stage2", manifest["deployment_gates"]["stage2"], evidence_root=tmp_path)
+    assert manifest["canonical_status"]["stage2"]["verification_scope"] == "private_aws_verification"
 
 
 @pytest.mark.parametrize(
@@ -256,7 +259,9 @@ def _run_main(monkeypatch, tmp_path, *extra, public=None):
     evidence = tmp_path / "evidence"
     evidence.mkdir()
     manifest = evidence / "phase3-stage-acceptance.json"
-    manifest.write_text(json.dumps({"schema_version": 3, "stages": {"stage2": {}}}))
+    manifest.write_text(
+        json.dumps(json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text()))
+    )
     token = tmp_path / "id-token"
     token.write_text("h.p.s")
     body = public or json.dumps(redact_snapshot(_report(), HMAC_KEY)).encode()
@@ -286,7 +291,9 @@ def test_main_dry_run_skips_the_injection_and_writes_nothing(monkeypatch, tmp_pa
 def test_main_confirmed_writes_valid_evidence_and_restores_the_key(monkeypatch, tmp_path, capsys):
     code, evidence, manifest, secrets = _run_main(monkeypatch, tmp_path, "--confirm-reviewed")
     assert code == 0, capsys.readouterr().err
-    assert json.loads(manifest.read_text())["stages"]["stage2"]["status"] == "passed"
+    result = json.loads(manifest.read_text())
+    assert result["deployment_gates"]["stage2"]["status"] == "passed"
+    assert result["canonical_status"]["stage2"]["verification_scope"] == "private_aws_verification"
     assert "AWSCURRENT" in secrets.stages["v-original"]
 
 

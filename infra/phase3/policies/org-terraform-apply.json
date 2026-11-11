@@ -57,6 +57,15 @@
       }
     },
     {
+      "Sid": "ManageS3PublicAccessPoliciesOnly",
+      "Effect": "Allow",
+      "Action": ["organizations:CreatePolicy", "organizations:UpdatePolicy"],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": { "organizations:PolicyType": "S3_POLICY" }
+      }
+    },
+    {
       "Sid": "AttachServiceControlPoliciesToOUsNeverTheRoot",
       "Effect": "Allow",
       "Action": ["organizations:AttachPolicy"],
@@ -69,13 +78,26 @@
       }
     },
     {
+      "Sid": "AttachS3PublicAccessPoliciesToOUsNeverTheRoot",
+      "Effect": "Allow",
+      "Action": ["organizations:AttachPolicy"],
+      "Resource": [
+        "arn:aws:organizations::${account_id}:policy/${organization_id}/s3_policy/p-*",
+        "arn:aws:organizations::${account_id}:ou/${organization_id}/ou-*"
+      ],
+      "Condition": {
+        "StringEquals": { "organizations:PolicyType": "S3_POLICY" }
+      }
+    },
+    {
       "Sid": "TagOnlyPhase3OrganizationResources",
       "Effect": "Allow",
       "Action": ["organizations:TagResource", "organizations:UntagResource"],
       "Resource": [
         "arn:aws:organizations::${account_id}:account/${organization_id}/${demo_account_id}",
         "arn:aws:organizations::${account_id}:ou/${organization_id}/ou-*",
-        "arn:aws:organizations::${account_id}:policy/${organization_id}/service_control_policy/p-*"
+        "arn:aws:organizations::${account_id}:policy/${organization_id}/service_control_policy/p-*",
+        "arn:aws:organizations::${account_id}:policy/${organization_id}/s3_policy/p-*"
       ]
     },
     {

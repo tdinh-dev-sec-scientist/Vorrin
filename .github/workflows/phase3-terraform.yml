@@ -18,7 +18,7 @@ on:
         required: true
         default: false
       replace_platform_flags:
-        description: control-plane only. Re-create the Rin/static-mode flag item from Terraform variables (the reviewed way to turn Rin on, or to recover after the budget kill switch)
+        description: control-plane only. Re-create platform flags and the scan schedule from reviewed variables (the explicit path to turn Rin on or recover after the budget kill switch)
         type: boolean
         required: false
         default: false
@@ -64,7 +64,7 @@ jobs:
       TF_VAR_scan_schedule_enabled: ${{ vars.PHASE3_SCAN_SCHEDULE_ENABLED || 'false' }}
       TF_VAR_enable_scan_pipeline: ${{ vars.PHASE3_ENABLE_SCAN_PIPELINE || 'false' }}
       TF_VAR_scan_container_image: ${{ vars.PHASE3_SCAN_CONTAINER_IMAGE || '' }}
-      TF_VAR_monthly_budget_usd: ${{ vars.PHASE3_MONTHLY_BUDGET_USD || 'null' }}
+      TF_VAR_monthly_budget_usd: ${{ vars.PHASE3_MONTHLY_BUDGET_USD || '5.0' }}
       TF_VAR_aws_pricing_estimate_monthly_usd: ${{ vars.PHASE3_AWS_ESTIMATE_MONTHLY_USD || 'null' }}
       TF_VAR_aws_pricing_estimate_reference: ${{ vars.PHASE3_AWS_ESTIMATE_REFERENCE || '' }}
       TF_VAR_provider_monthly_budget_usd: ${{ vars.PHASE3_PROVIDER_MONTHLY_BUDGET_USD || 'null' }}
@@ -212,10 +212,13 @@ jobs:
               echo "::error::replace_platform_flags applies only to the control-plane stack"
               exit 1
             fi
-            # Routine plans ignore the flag item so an apply cannot undo the
-            # kill switch; this explicit, reviewed replacement is the only way
-            # Terraform rewrites rin_enabled and static_mode.
+            # Routine applies preserve the budget breaker latch. This explicit,
+            # reviewed replacement restores Terraform's platform flags and, when
+            # enabled, the scheduled scan after cost and workload review.
             replace_args=(-replace='aws_dynamodb_table_item.platform_config[0]')
+            if [[ "$TF_VAR_enable_scan_pipeline" == "true" ]]; then
+              replace_args+=(-replace='aws_scheduler_schedule.scan[0]')
+            fi
           fi
           terraform plan -input=false -no-color "${replace_args[@]}" -out=phase3.tfplan
           terraform show -no-color phase3.tfplan > phase3.tfplan.txt

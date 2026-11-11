@@ -206,16 +206,23 @@ acceptance.
   input Guardrail, calls the external model only after a pass, and filters the
   validated answer through the output Guardrail. It has no raw scan evidence
   or target-account scanning tools.
-- A daily-limit alert reports aggregate usage only. At the monthly AWS 100%
-  notification, the budget topic atomically disables Rin and marks the console
-  static. Budget delivery can be delayed and is not a hard spend limit.
+- A daily-limit alert reports aggregate usage only. When actual AWS spend
+  exceeds $4.50 or forecasted spend exceeds $4.50, the budget topic invokes the
+  breaker. It atomically disables Rin and selects static mode, disables the
+  six-hour EventBridge schedule, stops running scan executions, and stops
+  Fargate scan tasks. The Terraform AWS budget is fixed at $5.00/month.
+- AWS Budgets data is updated up to three times daily and can lag charges by
+  8–12 hours. Forecast alerts require about five weeks of usage history. The
+  breaker is best-effort, not a hard spend limit or a guaranteed billing limit;
+  in-flight charges and late-reported usage can exceed the configured budget.
 
 ### Kill switch and recovery
 
 1. Check the alert and confirm the feature table has rin_enabled=false and
-   static_mode=true. Verify the public API still serves its last-good
-   sanitized scan and reports static mode; verify the website shows fixture
-   mode and Rin does not call the provider.
+   static_mode=true. Verify the EventBridge scan schedule is DISABLED and no
+   Phase 3 Step Functions execution or Fargate scan task remains running. Verify
+   the public API still serves its last-good sanitized scan and reports static
+   mode; verify Rin uses fixtures and does not call Bedrock or another provider.
 2. Rehearse with an isolated Phase 3 stack and the owner-approved publisher for
    the exact budget SNS topic. The kill-switch handler ignores message content
    and accepts only the configured topic. Do not rehearse by changing the
@@ -229,8 +236,13 @@ acceptance.
    cannot silently undo a kill switch. Keep the schedule, Rin, and public
    stages disabled if cost or evidence is uncertain.
 
-The kill-switch update is atomic. A request already inside the external
-provider call cannot be canceled; its maximum input and output are bounded.
+The feature-flag update is atomic; scheduler and workload shutdowns follow as
+separate API calls. Terraform ignores the schedule's out-of-band state change,
+so routine plans preserve the disabled latch. After reviewing actual and forecast
+costs, use the protected control-plane workflow's `replace_platform_flags` input
+to explicitly restore platform flags and, when enabled, the scheduled scan.
+A request already inside a Bedrock or external-provider call cannot be
+canceled; its maximum input and output are bounded.
 Record the measured switch and recovery times in docs/evidence after a live
 rehearsal. No live kill-switch test or timing is claimed yet.
 
