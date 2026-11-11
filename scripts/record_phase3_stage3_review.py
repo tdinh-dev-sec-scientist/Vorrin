@@ -235,10 +235,9 @@ def check(root: Path, record: dict[str, Any], quota: dict[str, Any]) -> None:
             enabled_stages=set(),
             expected_daily_invocation_limit=quota["daily_invocation_limit"],
             expected_monthly_budget_usd=quota["monthly_budget_usd"],
-            require_runtime_bindings=True,
         )
     except StageGateError as exc:
-        raise ReviewError(f"the Phase 3 deployment gates reject this evidence: {exc}") from None
+        raise ReviewError(f"Stage 3 gate rejects this evidence or its prerequisites: {exc}") from None
 
 
 def record_review(

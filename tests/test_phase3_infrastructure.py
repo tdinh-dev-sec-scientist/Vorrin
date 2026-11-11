@@ -334,7 +334,10 @@ def test_control_plane_stage_enables_require_checked_in_predecessor_acceptance_e
     assert "validate_phase3_stage_gates.py" in workflow
     assert 'terraform_data" "phase3_stage_acceptance_gate' in control_plane
     assert "docs/evidence/phase3-stage-acceptance.json" in control_plane
-    assert "phase3_stage_acceptance.schema_version == 3" in control_plane
+    assert "phase3_stage_acceptance.schema_version == 4" in control_plane
+    assert 'phase3_canonical_stage1.verification_scope == "private_aws_verification"' in control_plane
+    assert 'phase3_canonical_stage2.verification_scope == "private_aws_verification"' in control_plane
+    assert 'phase3_canonical_stage3.verification_scope == "private_aws_verification"' in control_plane
     assert "phase3_stage1.evidence_sha256[evidence_path]" in control_plane
     assert "phase3_stage2.evidence_sha256[evidence_path]" in control_plane
     assert "phase3_stage3.evidence_sha256[evidence_path]" in control_plane

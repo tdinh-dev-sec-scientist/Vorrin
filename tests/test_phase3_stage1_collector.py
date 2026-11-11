@@ -1,5 +1,6 @@
 import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -12,6 +13,7 @@ from scripts.collect_phase3_stage1_evidence import (
     write_actions,
 )
 
+ROOT = Path(__file__).resolve().parents[1]
 DEMO = "123456789012"
 READ_POLICY = {
     "Statement": [
@@ -62,10 +64,11 @@ def _build(tmp_path, drift=None, policies=None):
 
 def test_generated_evidence_passes_the_stage1_validator(tmp_path):
     files = _build(tmp_path)
-    manifest = {"stages": {}}
+    manifest = json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text())
     update_manifest(manifest, files, "Reviewer", "2026-11-06T18:00:00-05:00")
-    record = manifest["stages"]["stage1"]
+    record = manifest["deployment_gates"]["stage1"]
     assert record["evidence"] == list(FILES)
+    assert manifest["canonical_status"]["stage1"]["verification_scope"] == "private_aws_verification"
     validate_stage_evidence(
         "stage1",
         record,
@@ -244,7 +247,9 @@ def _run_main(monkeypatch, tmp_path, fakes, *extra):
     evidence = tmp_path / "evidence"
     evidence.mkdir()
     manifest = evidence / "phase3-stage-acceptance.json"
-    manifest.write_text(json.dumps({"schema_version": 3, "stages": {"stage1": {}}}))
+    manifest.write_text(
+        json.dumps(json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text()))
+    )
     monkeypatch.setattr(stage1, "EVIDENCE", evidence)
     monkeypatch.setattr(stage1, "MANIFEST", manifest)
     monkeypatch.setattr(stage1, "_terraform_change_sha256", lambda commit: "e" * 64)
@@ -271,8 +276,9 @@ def test_main_dry_run_writes_nothing(monkeypatch, tmp_path, capsys):
 def test_main_confirmed_writes_valid_evidence(monkeypatch, tmp_path):
     code, evidence, manifest = _run_main(monkeypatch, tmp_path, _Fakes(), "--confirm-reviewed")
     assert code == 0
-    record = json.loads(manifest.read_text())["stages"]["stage1"]
+    record = json.loads(manifest.read_text())["deployment_gates"]["stage1"]
     assert record["status"] == "passed"
+    assert json.loads(manifest.read_text())["canonical_status"]["stage1"]["status"] == "passed"
     log = json.loads((evidence / "stage1/schedule-execution-log.json").read_text())
     assert [e["scheduled_at"] for e in log["scheduled_executions"]] == [
         "2026-11-06T17:09:00Z",

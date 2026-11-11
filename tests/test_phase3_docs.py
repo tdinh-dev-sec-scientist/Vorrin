@@ -6,32 +6,30 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_phase3_status_separates_local_implementation_from_live_stage_acceptance():
+def test_phase3_status_separates_offline_verification_from_deployment_acceptance():
     status = (ROOT / "docs/phase3-status.md").read_text(encoding="utf-8")
     normalized_status = " ".join(status.split())
+    manifest = json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text(encoding="utf-8"))
 
-    assert "Stages 1–3 as passed and Stage 4 as pending" in normalized_status
-    for stage in ("Stage 1", "Stage 2", "Stage 3", "Stage 4"):
-        assert stage in status
-    assert "implementation" in status.lower()
-    assert "acceptance" in status.lower()
-    assert "read-only" in status.lower()
-    assert (
-        "This repository does not provide credentials or direct access to the live public-results store"
-        in normalized_status
-    )
+    assert "PASSED (Offline Fixtures & Moto Benchmarks)" in normalized_status
+    assert "UNVERIFIED / PENDING EXTERNAL CONFIRMATION" in normalized_status
+    assert "PENDING (Load & Operational Resilience Benchmarks)" in normalized_status
+    assert manifest["canonical_status"]["stage1"]["status"] == "passed"
+    assert manifest["canonical_status"]["stage2"]["status"] == "passed"
+    assert manifest["canonical_status"]["stage3"]["status"] == "unverified"
+    assert manifest["canonical_status"]["stage4"]["status"] == "pending"
+    assert "Every Terraform deployment gate is pending" in normalized_status
+    assert "do not authorize a live deployment" in normalized_status
+    assert "does not connect to AWS" in normalized_status
 
 
-def test_phase3_status_records_unavailable_aws_identity_and_pending_policy_review():
+def test_phase3_status_makes_the_external_verification_boundary_explicit():
     status = " ".join((ROOT / "docs/phase3-status.md").read_text(encoding="utf-8").split())
 
-    assert "audit-readonly profile can obtain an identity but AWS denies iam:ListRoles" in status
-    assert "default profile resolves to account root and was not used for policy capture" in status
-    assert (
-        "effective organization and control-plane role policies remain owner-managed and unverified here"
-        in status.lower()
-    )
-    assert "does not independently query the aws account" in status.lower()
+    assert "does not connect to AWS, accept credentials" in status
+    assert "not independent proof of an AWS deployment" in status
+    assert "external review confirms their source" in status
+    assert "deployment gate binds their hashes" in status
 
 
 def test_role_scope_manifest_records_are_pending_or_complete_untampered_reviews():
@@ -125,45 +123,39 @@ def test_stage_acceptance_guide_lists_required_evidence_and_digest_review():
 
 
 def test_readme_demo_video_is_linked_and_labelled_as_non_live():
-    status = " ".join((ROOT / "docs/phase3-status.md").read_text(encoding="utf-8").split())
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert "README now gives visitors a short console walkthrough" in status
-    assert "not a live AWS account" in status
+    assert "## Try the console" in readme
+    assert "not a live AWS account" in readme
     assert "](docs/media/vorrin-demo.mp4)" in readme
     assert "docs/images/demo-poster.jpg" in readme
     assert (ROOT / "docs/media/vorrin-demo.mp4").stat().st_size > 0
 
 
-def test_stage_three_passed_only_with_reviewed_guardrail_and_logging_evidence():
-    from phase3.stage_gates import _validate_stage_record
+def test_stage_three_remains_unverified_until_private_aws_acceptance():
+    from phase3.stage_gates import validate_stage_gates
 
-    manifest = json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text(encoding="utf-8"))
-    stage3 = manifest["stages"]["stage3"]
+    manifest_path = ROOT / "docs/evidence/phase3-stage-acceptance.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    canonical = manifest["canonical_status"]["stage3"]
+    gate = manifest["deployment_gates"]["stage3"]
 
-    assert manifest["schema_version"] == 3
-    assert stage3["status"] == "passed"
-    assert stage3["criteria"]["published_guardrail_policy_review"] is True
-    assert stage3["criteria"]["bedrock_invocation_logging_review"] is True
-    assert "stage3/guardrail-policy-review.json" in stage3["evidence"]
-    assert "stage3/bedrock-logging-review.json" in stage3["evidence"]
-    # The checked-in record passes the same gate Terraform runs, with the
-    # configured Rin budget ($5/month) and daily cap (19 questions).
-    assert _validate_stage_record(
-        "stage3",
-        stage3,
-        root=ROOT,
-        expected_daily_invocation_limit=19,
-        expected_monthly_budget_usd=5.0,
-        require_runtime_bindings=True,
-    )
+    assert manifest["schema_version"] == 4
+    assert canonical["status"] == "unverified"
+    assert canonical["verification_scope"] == "pending_external_confirmation"
+    assert canonical["verification_evidence"] == []
+    assert gate["status"] == "pending"
+    assert not any(gate["criteria"].values())
+    assert gate["evidence"] == []
+    validate_stage_gates(manifest_path, root=ROOT, enabled_stages=set())
 
 
 def test_stage_three_review_requires_digest_bound_captures_and_short_prompt_retention():
-    bootstrap = (ROOT / "docs/phase3-bootstrap.md").read_text(encoding="utf-8")
+    from phase3.stage_gates import STAGE_REQUIRED_EVIDENCE
 
+    bootstrap = (ROOT / "docs/phase3-bootstrap.md").read_text(encoding="utf-8")
     manifest = json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text(encoding="utf-8"))
-    stage3 = manifest["stages"]["stage3"]
+    stage3_evidence = STAGE_REQUIRED_EVIDENCE["stage3"]
 
     for artifact in (
         "stage3/guardrail-configuration.json",
@@ -172,8 +164,9 @@ def test_stage_three_review_requires_digest_bound_captures_and_short_prompt_rete
         "stage3/external-provider-logging-settings.json",
     ):
         assert artifact in bootstrap
-        assert artifact in stage3["evidence"]
-        assert artifact in stage3["evidence_sha256"]
+        assert artifact in stage3_evidence
+    assert manifest["canonical_status"]["stage3"]["status"] == "unverified"
+    assert manifest["deployment_gates"]["stage3"]["evidence"] == []
     assert "matching SHA-256" in bootstrap
     assert "capped at 30" in bootstrap
     assert "expected/observed action" in bootstrap

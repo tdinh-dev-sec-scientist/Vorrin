@@ -19,7 +19,7 @@ def _edit(manifest: Path, change) -> None:
 
 def _stage1(change):
     def apply(value):
-        change(value["stages"]["stage1"])
+        change(value["deployment_gates"]["stage1"])
 
     return apply
 
@@ -50,7 +50,7 @@ def test_a_missing_manifest_blocks_every_stage(tmp_path):
     [
         lambda value: value.update(schema_version=2),
         lambda value: value.update(schema_version=True),
-        lambda value: value["stages"].pop("stage4"),
+        lambda value: value["deployment_gates"].pop("stage4"),
         lambda value: value.update(extra=True),
     ],
 )

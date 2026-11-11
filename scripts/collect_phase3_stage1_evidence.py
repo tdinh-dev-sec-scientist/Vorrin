@@ -189,7 +189,7 @@ def build_documents(
 def update_manifest(
     manifest: dict[str, Any], files: dict[str, bytes], reviewer: str, reviewed_at: str
 ) -> None:
-    manifest["stages"]["stage1"] = {
+    manifest["deployment_gates"]["stage1"] = {
         "status": "passed",
         "reviewed_by": reviewer,
         "reviewed_at": reviewed_at,
@@ -200,6 +200,12 @@ def update_manifest(
         },
         "evidence": list(FILES),
         "evidence_sha256": {path: hashlib.sha256(body).hexdigest() for path, body in files.items()},
+    }
+    manifest["canonical_status"]["stage1"] = {
+        "status": "passed",
+        "verification_scope": "private_aws_verification",
+        "summary": "Private AWS verification was reviewed and recorded for Stage 1.",
+        "verification_evidence": ["Stage 1 reviewed artifacts are bound by SHA-256."],
     }
 
 
@@ -391,7 +397,7 @@ def main() -> int:
     try:
         validate_stage_evidence(
             "stage1",
-            manifest["stages"]["stage1"],
+            manifest["deployment_gates"]["stage1"],
             evidence_root=EVIDENCE,
             expected_demo_account_id_sha256=_sha256_text(demo_account_id),
         )

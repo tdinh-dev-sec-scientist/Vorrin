@@ -125,7 +125,11 @@ def _validate_canonical_status(value: Any) -> None:
             raise StageGateError(f"{stage_name} canonical status does not match its schema")
         if (record["status"], record["verification_scope"]) not in allowed[stage_name]:
             raise StageGateError(f"{stage_name} canonical status or verification scope is invalid")
-        if not isinstance(record["summary"], str) or not record["summary"].strip() or len(record["summary"]) > 500:
+        if (
+            not isinstance(record["summary"], str)
+            or not record["summary"].strip()
+            or len(record["summary"]) > 500
+        ):
             raise StageGateError(f"{stage_name} canonical summary is invalid")
         evidence = record["verification_evidence"]
         if (

@@ -91,10 +91,7 @@ def _label(stage: str, record: dict) -> str:
 
 def _status_data(manifest: dict) -> dict:
     records = manifest["canonical_status"]
-    stages = {
-        stage: {**records[stage], "label": _label(stage, records[stage])}
-        for stage in STAGES
-    }
+    stages = {stage: {**records[stage], "label": _label(stage, records[stage])} for stage in STAGES}
     summary = "; ".join(
         f"Stage {index}: {stages[stage]['label']}" for index, stage in enumerate(STAGES, start=1)
     )
@@ -121,9 +118,7 @@ def _write_if_changed(root: Path, relative: str, content: str) -> bool:
     return True
 
 
-def _replace_marked_block(
-    text: str, begin: str, end: str, body: str, *, anchor: str | None = None
-) -> str:
+def _replace_marked_block(text: str, begin: str, end: str, body: str, *, anchor: str | None = None) -> str:
     block = f"{begin}\n{body.rstrip()}\n{end}"
     if begin in text:
         pattern = re.compile(re.escape(begin) + r".*?" + re.escape(end), re.DOTALL)
@@ -138,19 +133,14 @@ def _render_badge(data: dict) -> str:
     badge_color = "brightgreen" if data["privateAwsStage3Verified"] else "yellow"
     alt = data["stages"]["stage3"]["label"]
     badge_label = quote(alt, safe="")
-    return (
-        f"![Phase 3 status: {alt}]"
-        f"(https://img.shields.io/badge/Phase%203-{badge_label}-{badge_color})"
-    )
+    return f"![Phase 3 status: {alt}](https://img.shields.io/badge/Phase%203-{badge_label}-{badge_color})"
 
 
 def _render_readme_status(data: dict) -> str:
     rows = []
     for index, stage in enumerate(STAGES, start=1):
         record = data["stages"][stage]
-        rows.append(
-            f"| {index} | {STAGE_TITLES[stage]} | {record['label']} | {record['summary']} |"
-        )
+        rows.append(f"| {index} | {STAGE_TITLES[stage]} | {record['label']} | {record['summary']} |")
     verified = data["privateAwsStage3Verified"]
     deployment_note = (
         "The manifest records private AWS verification for Stage 3."
@@ -203,9 +193,7 @@ def _update_readme(root: Path, data: dict) -> str:
     if marked.search(readme):
         readme = marked.sub(lambda _match: section + "\n\n", readme, count=1)
     else:
-        pattern = re.compile(
-            r"(?ms)^## Live deployment status\n.*?(?=^## Security and scope\n)"
-        )
+        pattern = re.compile(r"(?ms)^## Live deployment status\n.*?(?=^## Security and scope\n)")
         if pattern.search(readme):
             readme = pattern.sub(lambda _match: section + "\n\n", readme, count=1)
         else:
@@ -230,9 +218,7 @@ def _render_status_doc(manifest: dict, data: dict) -> str:
     rows = []
     for index, stage in enumerate(STAGES, start=1):
         record = data["stages"][stage]
-        rows.append(
-            f"| Stage {index} — {STAGE_TITLES[stage]} | {record['label']} | {record['summary']} |"
-        )
+        rows.append(f"| Stage {index} — {STAGE_TITLES[stage]} | {record['label']} | {record['summary']} |")
     gate_states = [manifest["deployment_gates"][stage]["status"] for stage in STAGES]
     if all(state == "pending" for state in gate_states):
         gate_note = (
@@ -343,7 +329,7 @@ def _update_knowledge(root: Path, data: dict) -> str:
             "no model is connected to that site. In a deployed service, a Bedrock Guardrail is "
             "intended to check bounded redacted input and validate the answer before it reaches "
             "a visitor. A block, invalid response, or service error selects the fixture fallback. "
-            "Guardrail errors use that fallback too."
+            "Guardrail errors use that fallback too.",
         ],
         "architecture-flow": [
             "The Phase 3 design uses a scanner that reads a dedicated target account through a "

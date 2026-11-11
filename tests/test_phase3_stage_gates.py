@@ -429,6 +429,7 @@ def _write_manifest(root: Path, *, accepted: set[str] = frozenset(), missing_evi
     )
     return path
 
+
 def _add_guardrail_review_artifacts(manifest: Path) -> None:
     value = json.loads(manifest.read_text(encoding="utf-8"))
     record = value["deployment_gates"]["stage3"]
