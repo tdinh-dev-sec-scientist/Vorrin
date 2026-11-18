@@ -43,7 +43,7 @@
   const stateMarkers = { PASS: "✓", FAIL: "×", UNKNOWN: "?", ERROR: "!", NOT_CONFIGURED: "○" };
   let activeProfile = profiles.misconfigured ? "misconfigured" : profileKeys[0];
   let activeView = "overview";
-  let activeTheme = "light";
+  let activeTheme = "dark";
   let assistantWelcomed = false;
   let liveSnapshotLoaded = false;
   let staticMode = false;
@@ -495,9 +495,9 @@
   function savedTheme() {
     try {
       const value = window.localStorage.getItem("account-access-auditor-theme");
-      return value === "light" || value === "dark" ? value : "light";
+      return value === "light" || value === "dark" ? value : "dark";
     } catch (_error) {
-      return "light";
+      return "dark";
     }
   }
 
@@ -850,6 +850,114 @@
     return strip;
   }
 
+  function serviceChart(profile) {
+    const section = panel("Findings by service", "Open findings per AWS service in this snapshot");
+    const groups = new Map();
+    profile.findings.forEach((finding) => {
+      const key = finding.service || "other";
+      if (!groups.has(key)) groups.set(key, { total: 0, counts: {} });
+      const group = groups.get(key);
+      group.total += 1;
+      const severity = String(finding.severity || "INFO").toUpperCase();
+      group.counts[severity] = (group.counts[severity] || 0) + 1;
+    });
+    const rows = [...groups.entries()].sort((a, b) => b[1].total - a[1].total);
+    const max = rows.length ? rows[0][1].total : 0;
+    const list = element("ul", "service-chart");
+    list.setAttribute("aria-label", "Findings by service");
+    const breakdownText = (counts) => severityOrder.filter((name) => counts[name]).map((name) => `${counts[name]} ${name.toLowerCase()}`).join(", ");
+    rows.forEach(([service, group]) => {
+      const item = element("li");
+      const bar = element("button", "service-bar");
+      bar.type = "button";
+      const breakdown = breakdownText(group.counts);
+      bar.dataset.tip = `${service}: ${breakdown}`;
+      const track = element("span", "service-track");
+      track.setAttribute("aria-hidden", "true");
+      const fill = element("span", "service-fill");
+      fill.style.width = `${max ? (group.total / max) * 100 : 0}%`;
+      track.append(fill);
+      bar.append(element("span", "service-name", service), track, element("span", "service-count", group.total), element("span", "sr-only", ` findings (${breakdown}). Show these findings.`));
+      bar.addEventListener("click", () => {
+        severityFilter = "ALL";
+        document.getElementById("global-search").value = service;
+        setView("findings");
+      });
+      item.append(bar);
+      const detail = element("span", "service-breakdown", breakdown);
+      detail.setAttribute("aria-hidden", "true");
+      bar.append(detail);
+      list.append(item);
+    });
+    section.section.append(list);
+    const details = element("details", "chart-table");
+    details.append(element("summary", "", "Show as table"));
+    const table = element("table");
+    const head = document.createElement("tr");
+    ["Service", "Total"].concat(severityOrder.map((name) => name.charAt(0) + name.slice(1).toLowerCase())).forEach((label) => {
+      const th = element("th", "", label);
+      th.scope = "col";
+      head.append(th);
+    });
+    const thead = document.createElement("thead");
+    thead.append(head);
+    const tbody = document.createElement("tbody");
+    rows.forEach(([service, group]) => {
+      const tr = document.createElement("tr");
+      tr.append(element("td", "", service), element("td", "", group.total));
+      severityOrder.forEach((name) => tr.append(element("td", "", group.counts[name] || 0)));
+      tbody.append(tr);
+    });
+    table.append(element("caption", "sr-only", "Findings by service and severity"), thead, tbody);
+    details.append(table);
+    section.section.append(details);
+    return section.section;
+  }
+
+  function kpiCard(label, value, note, iconName, extra) {
+    const card = element("article", `kpi-card${extra ? ` ${extra}` : ""}`);
+    const mark = element("span", "kpi-icon");
+    mark.append(icon(iconName));
+    card.append(mark, element("span", "kpi-label", label), element("strong", "kpi-value", value), element("span", "kpi-note", note));
+    return card;
+  }
+
+  function severityChart(profile) {
+    const section = panel("Severity distribution", "Findings per severity level in this snapshot");
+    section.section.classList.add("severity-panel");
+    const counts = severityOrder.map((name) => Number(profile.severityCounts[name] || 0));
+    const max = Math.max(1, ...counts);
+    const chart = element("div", "column-chart");
+    chart.setAttribute("role", "group");
+    chart.setAttribute("aria-label", "Severity distribution");
+    const grid = element("div", "column-grid");
+    grid.setAttribute("aria-hidden", "true");
+    [max, Math.round(max / 2), 0].forEach((tick) => grid.append(element("span", "column-tick", tick)));
+    grid.classList.add("is-scaled");
+    chart.append(grid);
+    const cols = element("div", "columns");
+    severityOrder.forEach((name, i) => {
+      const col = element("button", `column severity-${severityClasses[name]}`);
+      col.type = "button";
+      col.dataset.tip = `${counts[i]} ${name.toLowerCase()}`;
+      col.disabled = !counts[i];
+      const barWrap = element("span", "column-bar-wrap");
+      const bar = element("span", "column-bar");
+      bar.style.height = `${(counts[i] / max) * 86}%`;
+      bar.append(element("span", "column-value", `${counts[i]} `));
+      barWrap.append(bar);
+      const label = element("span", "column-label");
+      label.append(severityGlyph(severityClasses[name]), element("span", "", name.charAt(0) + name.slice(1).toLowerCase()));
+      col.append(barWrap, label);
+      label.append(element("span", "sr-only", " findings, show these"));
+      col.addEventListener("click", () => openFindingsFiltered(name));
+      cols.append(col);
+    });
+    chart.append(cols);
+    section.section.append(chart, element("p", "chart-caption", "Snapshot only. No time series is recorded yet."));
+    return section.section;
+  }
+
   function factRow(label, value, tone) {
     const row = element("div", "fact-row");
     row.append(element("dt", "", label));
@@ -874,61 +982,44 @@
       [reportLink]
     ));
 
-    const hero = element("section", `posture-hero tone-${verdict.tone}`);
-    hero.setAttribute("aria-labelledby", "posture-title");
-    const main = element("div", "posture-main");
-    const status = element("span", `verdict-chip tone-${verdict.tone}`);
-    status.append(severityGlyph(verdict.tone === "clean" ? "info" : verdict.tone), element("span", "", verdict.label));
-    const headline = element("h2", "posture-headline", verdict.headline);
-    headline.id = "posture-title";
-    const sub = element("p", "posture-sub", `${profile.openFindingCount} of ${profile.findingCount} findings are open and the enforcement gate is ${readableStatus(profile.run.gateStatus).toLowerCase()}. ${isLiveProfile() ? "Live read-only snapshot." : "Saved fixture replay."}`);
-    const { bar, legend } = postureBar(profile);
-    const cta = element("button", "button button-primary", verdict.cta);
+    const kpis = element("div", "kpi-grid");
+    const critical = Number(profile.severityCounts.CRITICAL || 0);
+    const high = Number(profile.severityCounts.HIGH || 0);
+    const services = new Set(profile.findings.map((finding) => finding.service)).size;
+    const feature = kpiCard("Critical findings", critical, verdict.label === "Clean" ? "No critical findings" : `${verdict.label}. Gate ${readableStatus(profile.run.gateStatus).toLowerCase()}`, "findings", "is-feature");
+    const cta = element("button", "kpi-action", verdict.cta);
     cta.type = "button";
     cta.append(icon("arrow"));
     cta.addEventListener("click", () => openFindingsFiltered(verdict.filter));
-    const actions = element("div", "posture-actions");
-    actions.append(cta);
-    main.append(status, headline, sub, bar, legend, actions);
-
-    const facts = element("dl", "posture-facts");
-    facts.append(
-      factRow("Open findings", element("span", "fact-number", profile.openFindingCount)),
-      factRow("Enforcement gate", statusBadge(profile.run.gateStatus || "NOT_CONFIGURED", "Enforcement gate")),
-
-      factRow("AWS connection", isLiveProfile() ? "1 demo scope, read only" : "Not connected (fixture)", isLiveProfile() ? "" : "muted"),
-      factRow(profile.run.executionStatus === "PASS" ? "Scan completed" : `Scan ${readableStatus(profile.run.executionStatus).toLowerCase()}`, element("time", "mono", formatDate(profile.run.completedAt)))
+    feature.append(cta);
+    kpis.append(
+      feature,
+      kpiCard("Open findings", profile.openFindingCount, `of ${profile.findingCount} recorded in this snapshot`, "shield"),
+      kpiCard("High severity", high, high ? "Next in the review queue" : "None open", "scan"),
+      kpiCard("Services affected", services, isLiveProfile() ? "Live read-only scope" : "AWS not connected (fixture)", "cloud")
     );
-    const side = element("div", "posture-side");
-    side.append(facts, evidenceStrip());
-    hero.append(main, side);
-    view.append(hero);
+    view.append(kpis);
 
-    const grid = element("div", "content-grid");
+    const charts = element("div", "chart-grid");
+    charts.append(severityChart(profile), serviceChart(profile));
+    view.append(charts);
+
     const top = element("section", "panel recent-findings");
     const topHead = element("div", "panel-header");
     const topCopy = element("div");
     topCopy.append(element("h2", "", "Top findings"), element("p", "", "Highest severity first. Select a finding for its evidence."));
-    const viewAll = element("button", "text-button", "View all");
+    const viewAll = element("button", "button button-primary button-small", "View all");
     viewAll.type = "button";
     viewAll.append(icon("arrow"));
     viewAll.addEventListener("click", () => openFindingsFiltered("ALL"));
     topHead.append(topCopy, viewAll);
     top.append(topHead, makeFindingsTable(recentFindings(profile, 5), true, "Top five findings"));
+    view.append(top);
 
+    const lower = element("div", "content-grid lower-grid");
     const activity = panel("Scan runs", isLiveProfile() ? "Latest sanitized read-only scan" : "Fixture runs included with the checked-in artifacts");
     activity.section.classList.add("scan-panel");
-    activity.section.append(renderScanList());
-    const runsFoot = element("div", "panel-foot");
-    const allRuns = element("button", "text-button", "View all runs");
-    allRuns.type = "button";
-    allRuns.append(icon("arrow"));
-    allRuns.addEventListener("click", () => setView("security-scans"));
-    runsFoot.append(allRuns);
-    activity.section.append(runsFoot);
-    grid.append(top, activity.section);
-    view.append(grid);
-
+    activity.section.append(renderScanList(), evidenceStrip());
     const coverage = element("section", "panel coverage-panel");
     const coverageHead = element("div", "panel-header");
     const coverageCopy = element("div");
@@ -941,7 +1032,8 @@
       miniPanel("AI Analyst", "brain", isLiveProfile() ? "Optional, gated" : "Fixture assistant", isLiveProfile() ? "Rin is separately gated by freshness, quotas, and the provider budget." : "Rin answers from this local fixture without a network request.", "ai-analyst")
     );
     coverage.append(coverageHead, rows);
-    view.append(coverage);
+    lower.append(activity.section, coverage);
+    view.append(lower);
     return view;
   }
 
