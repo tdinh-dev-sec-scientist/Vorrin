@@ -258,7 +258,7 @@ def test_console_sidebar_has_desktop_collapse_and_accessible_mobile_drawer(conso
     assert "inert" in script
     assert 'event.key === "Escape"' in script
     assert 'setAttribute("aria-label", "Expand navigation")' in script
-    assert 'class="menu-glyph"' in console
+    assert 'class="icon panel-glyph"' in console
     assert '.menu-toggle[aria-expanded="true"] .menu-glyph' in styles
     assert "window.scrollTo(0, 0)" in script
     assert "focus({ preventScroll: true })" in script
