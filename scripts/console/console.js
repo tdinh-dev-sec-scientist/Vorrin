@@ -710,8 +710,8 @@
         open.addEventListener("click", () => showFinding(finding, open));
         titleCell.append(open);
         const resourceLabel = shortResource(finding);
-        const metaParts = [finding.controlId, resourceLabel.startsWith(`${finding.service} ·`) ? resourceLabel : `${finding.service} · ${resourceLabel}`];
-        const meta = element("span", "finding-meta", metaParts.join(" · "));
+        const meta = element("span", "finding-meta");
+        meta.append(element("span", "meta-control", `${finding.controlId} · `), document.createTextNode(resourceLabel.startsWith(`${finding.service} ·`) ? resourceLabel : `${finding.service} · ${resourceLabel}`));
         meta.setAttribute("aria-hidden", "true");
         titleCell.append(meta);
         row.append(titleCell);
@@ -836,6 +836,11 @@
       }
       tick.setAttribute("aria-label", describe(key));
       tick.append(element("span", "strip-bar"));
+      const shortText = profiles[key].label.replace(/ Moto fixture$/i, "").replace(/^No CloudTrail$/i, "No trail");
+      tick.setAttribute("aria-label", `${shortText}. ${describe(key)}`);
+      const short = element("span", "strip-tick-label", shortText);
+      short.setAttribute("aria-hidden", "true");
+      tick.append(short);
       tick.addEventListener("click", () => select(key));
       ticks.append(tick);
       buttons.push(tick);
@@ -890,9 +895,9 @@
     facts.append(
       factRow("Open findings", element("span", "fact-number", profile.openFindingCount)),
       factRow("Enforcement gate", statusBadge(profile.run.gateStatus || "NOT_CONFIGURED", "Enforcement gate")),
-      factRow("Scan execution", profile.run.executionStatus === "PASS" ? "Completed" : readableStatus(profile.run.executionStatus), "muted"),
+
       factRow("AWS connection", isLiveProfile() ? "1 demo scope, read only" : "Not connected (fixture)", isLiveProfile() ? "" : "muted"),
-      factRow("Completed", element("time", "mono", formatDate(profile.run.completedAt)))
+      factRow(profile.run.executionStatus === "PASS" ? "Scan completed" : `Scan ${readableStatus(profile.run.executionStatus).toLowerCase()}`, element("time", "mono", formatDate(profile.run.completedAt)))
     );
     const side = element("div", "posture-side");
     side.append(facts);
@@ -914,6 +919,13 @@
     const activity = panel("Scan runs", isLiveProfile() ? "Latest sanitized read-only scan" : "Fixture runs included with the checked-in artifacts");
     activity.section.classList.add("scan-panel");
     activity.section.append(renderScanList());
+    const runsFoot = element("div", "panel-foot");
+    const allRuns = element("button", "text-button", "View all runs");
+    allRuns.type = "button";
+    allRuns.append(icon("arrow"));
+    allRuns.addEventListener("click", () => setView("security-scans"));
+    runsFoot.append(allRuns);
+    activity.section.append(runsFoot);
     grid.append(top, activity.section);
     view.append(grid);
 
