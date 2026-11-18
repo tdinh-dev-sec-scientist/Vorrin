@@ -11,7 +11,7 @@ status table by hand.
 | --- | --- | --- |
 | Stage 1 — Demo account and scans | PASSED (Offline Fixtures & Moto Benchmarks) | Offline fixtures and Moto-backed Phase 3 benchmark tests pass. This verifies repository behavior only, not a deployed AWS account. |
 | Stage 2 — Redaction, publication, and API | PASSED (Offline Fixtures & Moto Benchmarks) | Offline redaction, publication, and API behavior checks pass with fixtures and Moto. This does not confirm a live AWS publication path. |
-| Stage 3 — Website and Rin | UNVERIFIED / PENDING EXTERNAL CONFIRMATION | Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending. |
+| Stage 3 — Website and Rin | UNVERIFIED / PENDING EXTERNAL CONFIRMATION | The owner reports an invite-only deployment on a dedicated AWS demo account. Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending. |
 | Stage 4 — Load, cost controls, and operational resilience | PENDING (Load & Operational Resilience Benchmarks) | Load and operational resilience benchmarks, budget-cutoff and recovery rehearsal, and actual-cost evidence remain outstanding. |
 
 Every Terraform deployment gate is pending. Offline fixture and Moto passes do not authorize a live deployment.
@@ -23,7 +23,7 @@ connect to AWS, accept credentials, or run scans against visitors' accounts.
 The repository does not independently confirm a private AWS Phase 3 deployment
 or live Rin access.
 
-Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending.
+The owner reports an invite-only deployment on a dedicated AWS demo account. Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending.
 
 Artifacts under docs/evidence/stage3/ are retained as candidate review
 material. They are not private AWS acceptance evidence until an external

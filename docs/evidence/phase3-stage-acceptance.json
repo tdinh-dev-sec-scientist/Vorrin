@@ -20,7 +20,7 @@
     "stage3": {
       "status": "unverified",
       "verification_scope": "pending_external_confirmation",
-      "summary": "Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending.",
+      "summary": "The owner reports an invite-only deployment on a dedicated AWS demo account. Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending.",
       "verification_evidence": []
     },
     "stage4": {
