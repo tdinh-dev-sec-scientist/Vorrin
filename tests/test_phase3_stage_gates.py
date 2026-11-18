@@ -1068,10 +1068,30 @@ def test_workflow_gate_cli_allows_disabled_stages_but_blocks_stage_two(tmp_path)
         }
     # Pending gates must pair with the offline/unverified public status.
     manifest["canonical_status"] = {
-        "stage1": {"status": "passed", "verification_scope": "offline_fixtures_and_moto", "summary": "Offline.", "verification_evidence": ["CI"]},
-        "stage2": {"status": "passed", "verification_scope": "offline_fixtures_and_moto", "summary": "Offline.", "verification_evidence": ["CI"]},
-        "stage3": {"status": "unverified", "verification_scope": "pending_external_confirmation", "summary": "Pending.", "verification_evidence": []},
-        "stage4": {"status": "pending", "verification_scope": "load_and_operational_resilience", "summary": "Pending.", "verification_evidence": []},
+        "stage1": {
+            "status": "passed",
+            "verification_scope": "offline_fixtures_and_moto",
+            "summary": "Offline.",
+            "verification_evidence": ["CI"],
+        },
+        "stage2": {
+            "status": "passed",
+            "verification_scope": "offline_fixtures_and_moto",
+            "summary": "Offline.",
+            "verification_evidence": ["CI"],
+        },
+        "stage3": {
+            "status": "unverified",
+            "verification_scope": "pending_external_confirmation",
+            "summary": "Pending.",
+            "verification_evidence": [],
+        },
+        "stage4": {
+            "status": "pending",
+            "verification_scope": "load_and_operational_resilience",
+            "summary": "Pending.",
+            "verification_evidence": [],
+        },
     }
     (tmp_path / "docs/evidence").mkdir(parents=True)
     (tmp_path / "docs/evidence/phase3-stage-acceptance.json").write_text(json.dumps(manifest))

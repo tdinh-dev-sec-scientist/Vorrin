@@ -323,7 +323,10 @@ def test_console_supports_keyboard_skip_and_touch_sized_navigation(console, site
 
 def test_console_uses_local_sysdig_inspired_type_and_a_reduced_motion_3d_mascot(console, site):
     styles = (site / "console" / "console.css").read_text(encoding="utf-8")
-    assert 'font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' in styles
+    assert (
+        'font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+        in styles
+    )
     assert "font-family: Inter" not in styles
     assert re.search(r"\.nav-item\s*\{[^}]*font-size:\s*14px", styles, re.S)
     assert "fonts.googleapis.com" not in styles
