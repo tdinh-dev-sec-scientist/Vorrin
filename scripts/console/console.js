@@ -43,7 +43,7 @@
   const stateMarkers = { PASS: "✓", FAIL: "×", UNKNOWN: "?", ERROR: "!", NOT_CONFIGURED: "○" };
   let activeProfile = profiles.misconfigured ? "misconfigured" : profileKeys[0];
   let activeView = "overview";
-  let activeTheme = "dark";
+  let activeTheme = "light";
   let assistantWelcomed = false;
   let liveSnapshotLoaded = false;
   let staticMode = false;
@@ -495,9 +495,9 @@
   function savedTheme() {
     try {
       const value = window.localStorage.getItem("account-access-auditor-theme");
-      return value === "light" || value === "dark" ? value : "dark";
+      return value === "light" || value === "dark" ? value : "light";
     } catch (_error) {
-      return "dark";
+      return "light";
     }
   }
 
@@ -889,7 +889,7 @@
     cta.addEventListener("click", () => openFindingsFiltered(verdict.filter));
     const actions = element("div", "posture-actions");
     actions.append(cta);
-    main.append(status, headline, sub, bar, legend, actions, evidenceStrip());
+    main.append(status, headline, sub, bar, legend, actions);
 
     const facts = element("dl", "posture-facts");
     facts.append(
@@ -900,7 +900,7 @@
       factRow(profile.run.executionStatus === "PASS" ? "Scan completed" : `Scan ${readableStatus(profile.run.executionStatus).toLowerCase()}`, element("time", "mono", formatDate(profile.run.completedAt)))
     );
     const side = element("div", "posture-side");
-    side.append(facts);
+    side.append(facts, evidenceStrip());
     hero.append(main, side);
     view.append(hero);
 

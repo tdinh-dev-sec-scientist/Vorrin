@@ -240,11 +240,11 @@ def test_console_has_persistent_dark_and_light_modes(console, site):
     script = (site / "console" / "console.js").read_text(encoding="utf-8")
     styles = (site / "console" / "console.css").read_text(encoding="utf-8")
     assert 'id="theme-toggle"' in console
-    assert 'data-theme="dark"' in console
+    assert 'data-theme="light"' in console
     assert '[data-theme="light"]' in styles
     assert 'setAttribute("data-theme"' in script
     assert "localStorage" in script
-    assert "--app-bg: #0f1115" in styles
+    assert "--app-bg: #0b0b0e" in styles
     assert "--accent: #a78bfa" in styles
 
 
