@@ -951,7 +951,10 @@
       const bar = element("span", "column-bar");
       bar.style.height = `${(counts[i] / max) * 86}%`;
       bar.append(element("span", "column-value", `${counts[i]} `));
-      barWrap.append(bar);
+      const tip = element("span", "column-tip");
+      tip.setAttribute("aria-hidden", "true");
+      tip.append(element("small", "", name.charAt(0) + name.slice(1).toLowerCase()), element("strong", "", `${counts[i]} findings`), element("span", "", `${profile.findingCount ? Math.round((counts[i] / profile.findingCount) * 100) : 0}% of snapshot`));
+      barWrap.append(bar, tip);
       const label = element("span", "column-label");
       label.append(severityGlyph(severityClasses[name]), element("span", "", name.charAt(0) + name.slice(1).toLowerCase()));
       col.append(barWrap, label);
