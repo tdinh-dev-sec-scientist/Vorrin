@@ -244,8 +244,8 @@ def test_console_has_persistent_dark_and_light_modes(console, site):
     assert '[data-theme="light"]' in styles
     assert 'setAttribute("data-theme"' in script
     assert "localStorage" in script
-    assert "--app-bg: #202326" in styles
-    assert "--accent: #c079d2" in styles
+    assert "--app-bg: #0f1115" in styles
+    assert "--accent: #a78bfa" in styles
 
 
 def test_console_sidebar_has_desktop_collapse_and_accessible_mobile_drawer(console, site):
@@ -323,7 +323,7 @@ def test_console_supports_keyboard_skip_and_touch_sized_navigation(console, site
 
 def test_console_uses_local_sysdig_inspired_type_and_a_reduced_motion_3d_mascot(console, site):
     styles = (site / "console" / "console.css").read_text(encoding="utf-8")
-    assert 'font-family: "Avenir Next", "SF Pro Display", ui-sans-serif, system-ui, sans-serif' in styles
+    assert 'font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' in styles
     assert "font-family: Inter" not in styles
     assert re.search(r"\.nav-item\s*\{[^}]*font-size:\s*14px", styles, re.S)
     assert "fonts.googleapis.com" not in styles
