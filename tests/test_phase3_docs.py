@@ -11,15 +11,16 @@ def test_phase3_status_separates_offline_verification_from_deployment_acceptance
     normalized_status = " ".join(status.split())
     manifest = json.loads((ROOT / "docs/evidence/phase3-stage-acceptance.json").read_text(encoding="utf-8"))
 
-    assert "PASSED (Offline Fixtures & Moto Benchmarks)" in normalized_status
-    assert "UNVERIFIED / PENDING EXTERNAL CONFIRMATION" in normalized_status
+    assert "PASSED (Private AWS Verification)" in normalized_status
     assert "PENDING (Load & Operational Resilience Benchmarks)" in normalized_status
-    assert manifest["canonical_status"]["stage1"]["status"] == "passed"
-    assert manifest["canonical_status"]["stage2"]["status"] == "passed"
-    assert manifest["canonical_status"]["stage3"]["status"] == "unverified"
+    for stage in ("stage1", "stage2", "stage3"):
+        record = manifest["canonical_status"][stage]
+        assert (record["status"], record["verification_scope"]) == ("passed", "private_aws_verification")
+        assert "not independently confirmed" in record["summary"]
+        assert manifest["deployment_gates"][stage]["status"] == "passed"
     assert manifest["canonical_status"]["stage4"]["status"] == "pending"
-    assert "Every Terraform deployment gate is pending" in normalized_status
-    assert "do not authorize a live deployment" in normalized_status
+    assert manifest["deployment_gates"]["stage4"]["status"] == "pending"
+    assert "Each passed gate must bind reviewed private AWS evidence by SHA-256" in normalized_status
     assert "does not connect to AWS" in normalized_status
 
 
@@ -27,7 +28,7 @@ def test_phase3_status_makes_the_external_verification_boundary_explicit():
     status = " ".join((ROOT / "docs/phase3-status.md").read_text(encoding="utf-8").split())
 
     assert "does not connect to AWS, accept credentials" in status
-    assert "not independent proof of an AWS deployment" in status
+    assert "Owner-reviewed, not independently confirmed" in status
     assert "external review confirms their source" in status
     assert "deployment gate binds their hashes" in status
 
@@ -132,7 +133,7 @@ def test_readme_demo_video_is_linked_and_labelled_as_non_live():
     assert (ROOT / "docs/media/vorrin-demo.mp4").stat().st_size > 0
 
 
-def test_stage_three_remains_unverified_until_private_aws_acceptance():
+def test_stage_three_private_verification_is_owner_reviewed_and_digest_bound():
     from phase3.stage_gates import validate_stage_gates
 
     manifest_path = ROOT / "docs/evidence/phase3-stage-acceptance.json"
@@ -141,12 +142,14 @@ def test_stage_three_remains_unverified_until_private_aws_acceptance():
     gate = manifest["deployment_gates"]["stage3"]
 
     assert manifest["schema_version"] == 4
-    assert canonical["status"] == "unverified"
-    assert canonical["verification_scope"] == "pending_external_confirmation"
-    assert canonical["verification_evidence"] == []
-    assert gate["status"] == "pending"
-    assert not any(gate["criteria"].values())
-    assert gate["evidence"] == []
+    assert canonical["status"] == "passed"
+    assert canonical["verification_scope"] == "private_aws_verification"
+    assert "not independently confirmed" in canonical["summary"]
+    assert canonical["verification_evidence"]
+    assert gate["status"] == "passed"
+    assert gate["reviewed_by"] and gate["reviewed_at"]
+    assert all(gate["criteria"].values())
+    assert gate["evidence"] and set(gate["evidence"]) == set(gate["evidence_sha256"])
     validate_stage_gates(manifest_path, root=ROOT, enabled_stages=set())
 
 
@@ -165,8 +168,9 @@ def test_stage_three_review_requires_digest_bound_captures_and_short_prompt_rete
     ):
         assert artifact in bootstrap
         assert artifact in stage3_evidence
-    assert manifest["canonical_status"]["stage3"]["status"] == "unverified"
-    assert manifest["deployment_gates"]["stage3"]["evidence"] == []
+    assert manifest["canonical_status"]["stage3"]["verification_scope"] == "private_aws_verification"
+    gate_evidence = manifest["deployment_gates"]["stage3"]["evidence_sha256"]
+    assert gate_evidence and all(re.fullmatch(r"[a-f0-9]{64}", digest) for digest in gate_evidence.values())
     assert "matching SHA-256" in bootstrap
     assert "capped at 30" in bootstrap
     assert "expected/observed action" in bootstrap

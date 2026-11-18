@@ -24,7 +24,7 @@ test("generated canonical status drives Phase 3 answers", () => {
   const status = knowledge.PHASE3_STATUS;
   assert.equal(status.stages.stage1.status, "passed");
   assert.equal(status.stages.stage2.status, "passed");
-  assert.equal(status.stages.stage3.status, "unverified");
+  assert.equal(status.stages.stage3.status, "passed");
   assert.equal(status.stages.stage4.status, "pending");
 
   const answer = answerPlatformQuestion("Is the Phase 3 website live?");
