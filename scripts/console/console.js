@@ -877,7 +877,8 @@
       const fill = element("span", "service-fill");
       fill.style.width = `${max ? (group.total / max) * 100 : 0}%`;
       track.append(fill);
-      bar.append(element("span", "service-name", service), track, element("span", "service-count", group.total), element("span", "sr-only", ` findings (${breakdown}). Show these findings.`));
+      const pct = profile.findingCount ? Math.round((group.total / profile.findingCount) * 100) : 0;
+      bar.append(element("span", "service-name", service), element("span", "service-count", `${group.total} · ${pct}%`), track, element("span", "sr-only", ` findings (${breakdown}). Show these findings.`));
       bar.addEventListener("click", () => {
         severityFilter = "ALL";
         document.getElementById("global-search").value = service;
@@ -914,11 +915,16 @@
     return section.section;
   }
 
-  function kpiCard(label, value, note, iconName, extra) {
+  function kpiCard(label, value, note, iconName, extra, pill, pillTone) {
     const card = element("article", `kpi-card${extra ? ` ${extra}` : ""}`);
+    const top = element("div", "kpi-top");
     const mark = element("span", "kpi-icon");
     mark.append(icon(iconName));
-    card.append(mark, element("span", "kpi-label", label), element("strong", "kpi-value", value), element("span", "kpi-note", note));
+    top.append(mark);
+    if (pill) top.append(element("span", `kpi-pill${pillTone ? ` pill-${pillTone}` : ""}`, pill));
+    const valueRow = element("div", "kpi-value-row");
+    valueRow.append(element("strong", "kpi-value", value));
+    card.append(top, element("span", "kpi-label", label), valueRow, element("span", "kpi-note", note));
     return card;
   }
 
@@ -986,7 +992,9 @@
     const critical = Number(profile.severityCounts.CRITICAL || 0);
     const high = Number(profile.severityCounts.HIGH || 0);
     const services = new Set(profile.findings.map((finding) => finding.service)).size;
-    const feature = kpiCard("Critical findings", critical, verdict.label === "Clean" ? "No critical findings" : `${verdict.label}. Gate ${readableStatus(profile.run.gateStatus).toLowerCase()}`, "findings", "is-feature");
+    const total = Number(profile.findingCount) || 0;
+    const share = (n) => `${total ? Math.round((n / total) * 100) : 0}% of total`;
+    const feature = kpiCard("Critical findings", critical, verdict.label === "Clean" ? "No critical findings" : `${verdict.label}. Gate ${readableStatus(profile.run.gateStatus).toLowerCase()}`, "findings", "is-feature", share(critical));
     const cta = element("button", "kpi-action", verdict.cta);
     cta.type = "button";
     cta.append(icon("arrow"));
@@ -994,9 +1002,9 @@
     feature.append(cta);
     kpis.append(
       feature,
-      kpiCard("Open findings", profile.openFindingCount, `of ${profile.findingCount} recorded in this snapshot`, "shield"),
-      kpiCard("High severity", high, high ? "Next in the review queue" : "None open", "scan"),
-      kpiCard("Services affected", services, isLiveProfile() ? "Live read-only scope" : "AWS not connected (fixture)", "cloud")
+      kpiCard("Open findings", profile.openFindingCount, `of ${profile.findingCount} recorded in this snapshot`, "shield", "", total ? `${Math.round((profile.openFindingCount / total) * 100)}% open` : "", "neutral"),
+      kpiCard("High severity", high, high ? "Next in the review queue" : "None open", "scan", "", share(high), high ? "warn" : "good"),
+      kpiCard("Services affected", services, isLiveProfile() ? "Live read-only scope" : "AWS not connected (fixture)", "cloud", "", "iam, s3, cloudtrail".split(", ").length === services ? "All scanned" : "", "neutral")
     );
     view.append(kpis);
 
@@ -1814,6 +1822,7 @@
   const assistantDialog = document.getElementById("assistant-dialog");
   const assistantLauncher = document.getElementById("assistant-launcher");
   assistantLauncher.addEventListener("click", openLocalAssistant);
+  document.getElementById("sidebar-rin").addEventListener("click", openLocalAssistant);
   document.getElementById("assistant-close").addEventListener("click", () => assistantDialog.close());
   assistantDialog.addEventListener("close", () => {
     document.body.classList.remove("has-dialog");
