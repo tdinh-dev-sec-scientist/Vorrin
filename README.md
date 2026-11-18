@@ -3,7 +3,7 @@
 [![CI](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/ci.yml/badge.svg)](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/ci.yml)
 [![IaC guardrails](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/iac-guardrails.yml/badge.svg)](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/iac-guardrails.yml)
 <!-- BEGIN GENERATED PHASE 3 BADGE -->
-![Phase 3 status: UNVERIFIED / PENDING EXTERNAL CONFIRMATION](https://img.shields.io/badge/Phase%203-UNVERIFIED%20%2F%20PENDING%20EXTERNAL%20CONFIRMATION-yellow)
+![Phase 3 status: PASSED (Private AWS Verification)](https://img.shields.io/badge/Phase%203-PASSED%20%28Private%20AWS%20Verification%29-brightgreen)
 <!-- END GENERATED PHASE 3 BADGE -->
 ![Python 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -203,12 +203,12 @@ The stage summaries below are generated from the
 
 | Stage | Scope | Canonical status | Verification note |
 | --- | --- | --- | --- |
-| 1 | Demo account and scans | PASSED (Offline Fixtures & Moto Benchmarks) | Offline fixtures and Moto-backed Phase 3 benchmark tests pass. This verifies repository behavior only, not a deployed AWS account. |
-| 2 | Redaction, publication, and API | PASSED (Offline Fixtures & Moto Benchmarks) | Offline redaction, publication, and API behavior checks pass with fixtures and Moto. This does not confirm a live AWS publication path. |
-| 3 | Website and Rin | UNVERIFIED / PENDING EXTERNAL CONFIRMATION | The owner reports an invite-only deployment on a dedicated AWS demo account. Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending. |
+| 1 | Demo account and scans | PASSED (Private AWS Verification) | Owner-run private AWS verification on the dedicated demo account: two consecutive scheduled scans, reviewed new and resolved drift, and read-only target role evidence. Owner-reviewed, not independently confirmed. |
+| 2 | Redaction, publication, and API | PASSED (Private AWS Verification) | Owner-run private AWS verification of redaction and secret tests, publisher failure atomicity, and public API method checks against the deployed path. Owner-reviewed, not independently confirmed. |
+| 3 | Website and Rin | PASSED (Private AWS Verification) | Owner-run private AWS verification of the invite-only website and Rin: HTTPS and security headers, Rin evaluation, quota fallbacks, failure banners, guardrail and Bedrock logging review. Owner-reviewed, not independently confirmed. |
 | 4 | Load, cost controls, and operational resilience | PENDING (Load & Operational Resilience Benchmarks) | Load and operational resilience benchmarks, budget-cutoff and recovery rehearsal, and actual-cost evidence remain outstanding. |
 
-No private AWS verification is recorded for Stage 3. Offline passes for Stages 1–2 do not establish that AWS resources were deployed. The public GitHub Pages site remains a static Moto/fixture
+The manifest records private AWS verification for Stage 3. The public GitHub Pages site remains a static Moto/fixture
 replay and does not connect to AWS or an AI provider. Terraform deployment
 acceptance is tracked separately in the same manifest and requires private
 AWS evidence.

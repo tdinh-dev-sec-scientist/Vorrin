@@ -1,6 +1,6 @@
 # Stage 3 candidate evidence
 
-**Canonical status: UNVERIFIED / PENDING EXTERNAL CONFIRMATION.**
+**Canonical status: PASSED (Private AWS Verification).**
 
 The files in this directory are retained as candidate review artifacts. They
 are not independent confirmation of a private AWS deployment or live Rin

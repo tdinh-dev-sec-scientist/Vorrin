@@ -9,12 +9,12 @@ status table by hand.
 
 | Stage | Status | Scope |
 | --- | --- | --- |
-| Stage 1 — Demo account and scans | PASSED (Offline Fixtures & Moto Benchmarks) | Offline fixtures and Moto-backed Phase 3 benchmark tests pass. This verifies repository behavior only, not a deployed AWS account. |
-| Stage 2 — Redaction, publication, and API | PASSED (Offline Fixtures & Moto Benchmarks) | Offline redaction, publication, and API behavior checks pass with fixtures and Moto. This does not confirm a live AWS publication path. |
-| Stage 3 — Website and Rin | UNVERIFIED / PENDING EXTERNAL CONFIRMATION | The owner reports an invite-only deployment on a dedicated AWS demo account. Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending. |
+| Stage 1 — Demo account and scans | PASSED (Private AWS Verification) | Owner-run private AWS verification on the dedicated demo account: two consecutive scheduled scans, reviewed new and resolved drift, and read-only target role evidence. Owner-reviewed, not independently confirmed. |
+| Stage 2 — Redaction, publication, and API | PASSED (Private AWS Verification) | Owner-run private AWS verification of redaction and secret tests, publisher failure atomicity, and public API method checks against the deployed path. Owner-reviewed, not independently confirmed. |
+| Stage 3 — Website and Rin | PASSED (Private AWS Verification) | Owner-run private AWS verification of the invite-only website and Rin: HTTPS and security headers, Rin evaluation, quota fallbacks, failure banners, guardrail and Bedrock logging review. Owner-reviewed, not independently confirmed. |
 | Stage 4 — Load, cost controls, and operational resilience | PENDING (Load & Operational Resilience Benchmarks) | Load and operational resilience benchmarks, budget-cutoff and recovery rehearsal, and actual-cost evidence remain outstanding. |
 
-Every Terraform deployment gate is pending. Offline fixture and Moto passes do not authorize a live deployment.
+Terraform deployment gates are recorded separately from repository test status. Each passed gate must bind reviewed private AWS evidence by SHA-256.
 
 ## Deployment and evidence boundary
 
@@ -23,7 +23,7 @@ connect to AWS, accept credentials, or run scans against visitors' accounts.
 The repository does not independently confirm a private AWS Phase 3 deployment
 or live Rin access.
 
-The owner reports an invite-only deployment on a dedicated AWS demo account. Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending.
+Owner-run private AWS verification of the invite-only website and Rin: HTTPS and security headers, Rin evaluation, quota fallbacks, failure banners, guardrail and Bedrock logging review. Owner-reviewed, not independently confirmed.
 
 Artifacts under docs/evidence/stage3/ are retained as candidate review
 material. They are not private AWS acceptance evidence until an external

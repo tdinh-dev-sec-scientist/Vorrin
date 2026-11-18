@@ -7,32 +7,54 @@
 
 // BEGIN GENERATED PHASE 3 STATUS
   const PHASE3_STATUS = Object.freeze({
-  "privateAwsStage3Verified": false,
+  "privateAwsStage3Verified": true,
   "stages": {
     "stage1": {
       "status": "passed",
-      "verification_scope": "offline_fixtures_and_moto",
-      "summary": "Offline fixtures and Moto-backed Phase 3 benchmark tests pass. This verifies repository behavior only, not a deployed AWS account.",
+      "verification_scope": "private_aws_verification",
+      "summary": "Owner-run private AWS verification on the dedicated demo account: two consecutive scheduled scans, reviewed new and resolved drift, and read-only target role evidence. Owner-reviewed, not independently confirmed.",
       "verification_evidence": [
-        "CI Python 3.11 and 3.12 pytest runs using offline fixtures and Moto."
+        "Owner review 2026-11-07: docs/evidence/stage1/scheduled-scan-results.json (sha256 e8672f0940ec)",
+        "Owner review 2026-11-07: docs/evidence/stage1/schedule-execution-log.json (sha256 fefd71cd1465)",
+        "Owner review 2026-11-07: docs/evidence/stage1/drift-review.json (sha256 86d826e9dd87)",
+        "Owner review 2026-11-07: docs/evidence/stage1/read-only-role-review.json (sha256 8aabd7f2072f)"
       ],
-      "label": "PASSED (Offline Fixtures & Moto Benchmarks)"
+      "label": "PASSED (Private AWS Verification)"
     },
     "stage2": {
       "status": "passed",
-      "verification_scope": "offline_fixtures_and_moto",
-      "summary": "Offline redaction, publication, and API behavior checks pass with fixtures and Moto. This does not confirm a live AWS publication path.",
+      "verification_scope": "private_aws_verification",
+      "summary": "Owner-run private AWS verification of redaction and secret tests, publisher failure atomicity, and public API method checks against the deployed path. Owner-reviewed, not independently confirmed.",
       "verification_evidence": [
-        "CI Python 3.11 and 3.12 pytest runs using offline fixtures and Moto."
+        "Owner review 2026-11-07: docs/evidence/stage2/redaction-test-results.json (sha256 129c6d891eff)",
+        "Owner review 2026-11-07: docs/evidence/stage2/publisher-failure.json (sha256 1dcb3e7414a0)",
+        "Owner review 2026-11-07: docs/evidence/stage2/public-api-methods.json (sha256 978c55738929)"
       ],
-      "label": "PASSED (Offline Fixtures & Moto Benchmarks)"
+      "label": "PASSED (Private AWS Verification)"
     },
     "stage3": {
-      "status": "unverified",
-      "verification_scope": "pending_external_confirmation",
-      "summary": "The owner reports an invite-only deployment on a dedicated AWS demo account. Checked-in owner-provided artifacts are not independent proof of an AWS deployment or live Rin enablement; external confirmation is pending.",
-      "verification_evidence": [],
-      "label": "UNVERIFIED / PENDING EXTERNAL CONFIRMATION"
+      "status": "passed",
+      "verification_scope": "private_aws_verification",
+      "summary": "Owner-run private AWS verification of the invite-only website and Rin: HTTPS and security headers, Rin evaluation, quota fallbacks, failure banners, guardrail and Bedrock logging review. Owner-reviewed, not independently confirmed.",
+      "verification_evidence": [
+        "Owner review 2026-11-08: docs/evidence/stage3/bedrock-logging-review.json (sha256 8b81ecd726ca)",
+        "Owner review 2026-11-08: docs/evidence/stage3/bedrock-logging-settings.json (sha256 ed4fa1573886)",
+        "Owner review 2026-11-08: docs/evidence/stage3/external-provider-logging-settings.json (sha256 ef8b932ed691)",
+        "Owner review 2026-11-08: docs/evidence/stage3/external-tls-scan.json (sha256 d738ab17e1a3)",
+        "Owner review 2026-11-08: docs/evidence/stage3/failure-banners.json (sha256 31f80b122589)",
+        "Owner review 2026-11-08: docs/evidence/stage3/guardrail-configuration.json (sha256 5d02ecc40f16)",
+        "Owner review 2026-11-08: docs/evidence/stage3/guardrail-evaluation.json (sha256 65a72738e1d2)",
+        "Owner review 2026-11-08: docs/evidence/stage3/guardrail-policy-review.json (sha256 c53402482c97)",
+        "Owner review 2026-11-08: docs/evidence/stage3/privacy-accessibility.json (sha256 ef49733265da)",
+        "Owner review 2026-11-08: docs/evidence/stage3/quota-fallbacks.json (sha256 466d07fa4b78)",
+        "Owner review 2026-11-08: docs/evidence/stage3/rin-evaluation.json (sha256 ae68669b7eb7)",
+        "Owner review 2026-11-08: docs/evidence/stage3/source-reports/accessibility.json (sha256 249cb43bc240)",
+        "Owner review 2026-11-08: docs/evidence/stage3/source-reports/browser-network.json (sha256 89e2cae6f041)",
+        "Owner review 2026-11-08: docs/evidence/stage3/source-reports/external-tls.json (sha256 e7a4aa6c43e9)",
+        "Owner review 2026-11-08: docs/evidence/stage3/source-reports/lighthouse.json (sha256 0927302a5102)",
+        "Owner review 2026-11-08: docs/evidence/stage3/transport-security.json (sha256 4beef4c1ee92)"
+      ],
+      "label": "PASSED (Private AWS Verification)"
     },
     "stage4": {
       "status": "pending",
@@ -42,7 +64,7 @@
       "label": "PENDING (Load & Operational Resilience Benchmarks)"
     }
   },
-  "summary": "Stage 1: PASSED (Offline Fixtures & Moto Benchmarks); Stage 2: PASSED (Offline Fixtures & Moto Benchmarks); Stage 3: UNVERIFIED / PENDING EXTERNAL CONFIRMATION; Stage 4: PENDING (Load & Operational Resilience Benchmarks)"
+  "summary": "Stage 1: PASSED (Private AWS Verification); Stage 2: PASSED (Private AWS Verification); Stage 3: PASSED (Private AWS Verification); Stage 4: PENDING (Load & Operational Resilience Benchmarks)"
 });
 // END GENERATED PHASE 3 STATUS
 
