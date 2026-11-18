@@ -809,7 +809,7 @@
     function describe(key) {
       const profile = profiles[key];
       const worst = worstSeverity(profile);
-      return `${profile.label}: ${profile.findingCount} findings, worst ${worst ? worst.toLowerCase() : "none"}. ${formatDate(profile.run.completedAt)}`;
+      return `${profile.label}: ${profile.findingCount} findings, worst ${worst ? worst.toLowerCase() : "none"}`;
     }
     function select(key) {
       buttons.forEach((button) => button.setAttribute("aria-expanded", String(button.dataset.key === key)));
@@ -821,7 +821,7 @@
         go.addEventListener("click", () => setScope(key));
         detail.append(go);
       } else {
-        detail.append(element("span", "strip-current", "Showing"));
+        detail.append(element("span", "strip-current", "Current"));
       }
     }
     keys.forEach((key) => {
@@ -884,18 +884,18 @@
     cta.addEventListener("click", () => openFindingsFiltered(verdict.filter));
     const actions = element("div", "posture-actions");
     actions.append(cta);
-    main.append(status, headline, sub, bar, legend, actions);
+    main.append(status, headline, sub, bar, legend, actions, evidenceStrip());
 
     const facts = element("dl", "posture-facts");
     facts.append(
       factRow("Open findings", element("span", "fact-number", profile.openFindingCount)),
       factRow("Enforcement gate", statusBadge(profile.run.gateStatus || "NOT_CONFIGURED", "Enforcement gate")),
-      factRow("Scan execution", statusBadge(profile.run.executionStatus, "Scan execution")),
+      factRow("Scan execution", profile.run.executionStatus === "PASS" ? "Completed" : readableStatus(profile.run.executionStatus), "muted"),
       factRow("AWS connection", isLiveProfile() ? "1 demo scope, read only" : "Not connected (fixture)", isLiveProfile() ? "" : "muted"),
       factRow("Completed", element("time", "mono", formatDate(profile.run.completedAt)))
     );
     const side = element("div", "posture-side");
-    side.append(facts, evidenceStrip());
+    side.append(facts);
     hero.append(main, side);
     view.append(hero);
 
@@ -1746,6 +1746,12 @@
       document.getElementById("global-search").focus();
     }
   });
+
+  // When the explainer already says the API is unavailable or fixtures are shown, the detail line repeats it.
+  const explainerNode = document.getElementById("state-explainer");
+  const syncBannerDetail = () => document.getElementById("source-banner").classList.toggle("detail-redundant", /live API is unavailable|checked-in fixtures/.test(explainerNode.textContent));
+  new MutationObserver(syncBannerDetail).observe(explainerNode, { childList: true, characterData: true, subtree: true });
+  syncBannerDetail();
 
   document.getElementById("nav-finding-count").dataset.count = String(current().openFindingCount);
   applyTheme(savedTheme(), false);

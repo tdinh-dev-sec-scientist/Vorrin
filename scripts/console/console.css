@@ -945,3 +945,13 @@ a { text-underline-offset: 3px; text-decoration-thickness: 1px; }
   .coverage-rows .mini-panel { grid-template-columns: minmax(0, 1fr); }
   .coverage-rows .mini-foot { justify-content: space-between; }
 }
+.source-banner.detail-redundant #source-detail, .source-banner.detail-redundant .source-line .source-divider { display: none; }
+.posture-hero { align-items: start; }
+.posture-main .evidence-strip { margin-top: 20px; }
+.strip-detail-text { overflow-wrap: normal; }
+.strip-current { padding: 1px 8px; color: var(--text-muted); border: 1px solid var(--border); border-radius: 99px; }
+.compact-table .finding-meta { display: block; }
+@media (max-width: 700px) {
+  .severity-filter { flex-wrap: wrap; overflow: visible; }
+  .findings-table .finding-row { border-bottom-width: 8px; border-bottom-color: var(--app-bg); }
+}
